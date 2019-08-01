@@ -4,9 +4,13 @@ services:
   rabbitmq:
     image: rabbitmq:3.7.17-management
     container_name: osmp4j-rabbit
-    environment:
-      RABBITMQ_DEFAULT_USER: osmp4j-admin
-      RABBITMQ_DEFAULT_PASS: osmp4j
+#    environment:
+#      RABBITMQ_DEFAULT_USER: osmp4j-admin
+#      RABBITMQ_DEFAULT_PASS: osmp4j
+    volumes:
+      - ./rabbit/data:/var/lib/rabbitmq:rw
+      - ./rabbit/definitions.json:/opt/definitions.json:ro
+      - ./rabbit/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
     ports:
       - 5672:5672
       - 15672:15672
