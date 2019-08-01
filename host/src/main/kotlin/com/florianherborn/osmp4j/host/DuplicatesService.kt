@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service
 class DuplicatesService @Autowired constructor(private val template: RabbitTemplate) {
 
     fun removeDuplicates() {
+        println("Host: Duplicates Request")
         template.convertAndSend(RabbitConf.REQUEST_DUPLICATES_QUEUE_NAME,"Remove Duplicates")
     }
 
