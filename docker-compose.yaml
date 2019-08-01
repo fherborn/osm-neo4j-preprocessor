@@ -37,5 +37,20 @@ services:
     depends_on:
       - rabbitmq
 
+  ftpd_server:
+    image: stilliard/pure-ftpd:hardened
+    container_name: pure-ftpd
+    ports:
+      - 21:21
+      - 30000-30009:30000-30009
+    environment:
+      PUBLICHOST: "localhost"
+      FTP_USER_NAME: osmp4jadmin
+      FTP_USER_PASS: osmp4j
+      FTP_USER_HOME: /home/username
+    networks:
+      - osmp4j
+    restart: always
+
 networks:
   osmp4j:
