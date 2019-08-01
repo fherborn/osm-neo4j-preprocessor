@@ -13,5 +13,21 @@ services:
     networks:
       - osmp4j
 
+  agent-1:
+    image: osmp4j-agent
+    container_name: osmp4j-agent-1
+    ports:
+      - 8081:8080
+    networks:
+      - osmp4j
+
+  host:
+    image: osmp4j-host
+    container_name: osmp4j-host
+    ports:
+      - 8080:8080
+    networks:
+      - osmp4j
+
 networks:
   osmp4j:
