@@ -24,14 +24,22 @@ services:
       - 8081:8080
     networks:
       - osmp4j
+    depends_on:
+      - rabbitmq
 
   host:
     image: osmp4j-host
     container_name: osmp4j-host
+    environment:
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_USERNAME: osmp4jadmin
+      SPRING_RABBITMQ_PASSWORD: test12
     ports:
       - 8080:8080
     networks:
       - osmp4j
+    depends_on:
+      - rabbitmq
 
 networks:
   osmp4j:
