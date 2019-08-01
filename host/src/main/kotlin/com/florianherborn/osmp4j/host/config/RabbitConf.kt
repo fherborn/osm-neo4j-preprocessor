@@ -1,13 +1,6 @@
 package com.florianherborn.osmp4j.host.config
 
-import com.florianherborn.osmp4j.host.Receiver
-import org.springframework.amqp.core.Binding
-import org.springframework.amqp.core.BindingBuilder
 import org.springframework.amqp.core.Queue
-import org.springframework.amqp.core.TopicExchange
-import org.springframework.amqp.rabbit.connection.ConnectionFactory
-import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer
-import org.springframework.amqp.rabbit.listener.adapter.MessageListenerAdapter
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 
@@ -17,36 +10,30 @@ class RabbitConf {
 
 
     @Bean
-    fun queue(): Queue {
-        return Queue(QUEUE_NAME, false)
+    fun requestPreparationQueue(): Queue {
+        return Queue(REQUEST_PREPARATION_QUEUE_NAME, false)
     }
 
     @Bean
-    fun exchange(): TopicExchange {
-        return TopicExchange(TOPIC_EXCHANGE_NAME)
+    fun responsePreparationQueue(): Queue {
+        return Queue(RESPONSE_PREPARATION_QUEUE_NAME, false)
     }
 
     @Bean
-    fun binding(queue: Queue, exchange: TopicExchange): Binding {
-        return BindingBuilder.bind(queue).to(exchange).with("foo.bar.#")
+    fun requestDuplicatesQueue(): Queue {
+        return Queue(REQUEST_DUPLICATES_QUEUE_NAME, false)
     }
 
     @Bean
-    fun container(connectionFactory: ConnectionFactory, listenerAdapter: MessageListenerAdapter): SimpleMessageListenerContainer {
-        val container = SimpleMessageListenerContainer()
-        container.connectionFactory = connectionFactory
-        container.setQueueNames(QUEUE_NAME)
-        container.setMessageListener(listenerAdapter)
-        return container
+    fun responseDuplicatesQueue(): Queue {
+        return Queue(RESPONSE_DUPLICATES_QUEUE_NAME, false)
     }
 
-    @Bean
-    fun listenerAdapter(receiver: Receiver): MessageListenerAdapter {
-        return MessageListenerAdapter(receiver, "receiveMessage")
-    }
 
     companion object {
-        const val TOPIC_EXCHANGE_NAME = "spring-boot-exchange"
-        const val QUEUE_NAME = "spring-boot"
+        const val REQUEST_PREPARATION_QUEUE_NAME = "osmp4j.preparation.request"
+        const val RESPONSE_PREPARATION_QUEUE_NAME = "osmp4j.preparation.response"
+        const val REQUEST_DUPLICATES_QUEUE_NAME = "osmp4j.duplicates.request"
+        const val RESPONSE_DUPLICATES_QUEUE_NAME = "osmp4j.duplicates.response"
     }
 }
