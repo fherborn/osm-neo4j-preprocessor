@@ -11,5 +11,6 @@ pluginManagement {
 			}
 		}
 	}
+	includeBuild("../core")
 }
 rootProject.name = "host"
