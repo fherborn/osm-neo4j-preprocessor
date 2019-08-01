@@ -1,6 +1,6 @@
 package com.osmp4j.host
 
-import com.osmp4j.host.config.RabbitConf
+import com.osmp4j.core.rabbitmq.QueuesNames
 import org.springframework.amqp.rabbit.annotation.RabbitListener
 import org.springframework.amqp.rabbit.core.RabbitTemplate
 import org.springframework.beans.factory.annotation.Autowired
@@ -11,10 +11,10 @@ class PreparationService @Autowired constructor(private val template: RabbitTemp
 
     fun prepareBoundingBox() {
         println("Host: Preparate Request")
-        template.convertAndSend("","Prepare Bounding Box")
+        template.convertAndSend(QueuesNames.REQUEST_PREPARATION, "Prepare Bounding Box")
     }
 
-    @RabbitListener(queues = [""])
+    @RabbitListener(queues = [QueuesNames.RESPONSE_PREPARATION])
     fun onPreparationResponse(message: String) {
         println("Host: Preparation Response -> $message")
     }
