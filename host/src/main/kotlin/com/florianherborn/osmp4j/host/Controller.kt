@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/")
-class TestController @Autowired constructor(private val preparationService: PreparationService, private val duplicatesService: DuplicatesService) {
+class Controller @Autowired constructor(private val preparationService: PreparationService, private val duplicatesService: DuplicatesService) {
 
     @GetMapping
     fun send() = preparationService.prepateBoundingBox()
