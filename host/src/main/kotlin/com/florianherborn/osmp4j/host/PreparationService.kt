@@ -9,7 +9,7 @@ import org.springframework.stereotype.Service
 @Service
 class PreparationService @Autowired constructor(private val template: RabbitTemplate) {
 
-    fun preparateBoundingBox() {
+    fun prepareBoundingBox() {
         println("Host: Preparate Request")
         template.convertAndSend(RabbitConf.REQUEST_PREPARATION_QUEUE_NAME,"Prepare Bounding Box")
     }

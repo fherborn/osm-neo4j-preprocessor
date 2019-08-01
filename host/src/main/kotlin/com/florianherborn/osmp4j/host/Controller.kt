@@ -10,6 +10,6 @@ import org.springframework.web.bind.annotation.RestController
 class Controller @Autowired constructor(private val preparationService: PreparationService, private val duplicatesService: DuplicatesService) {
 
     @GetMapping
-    fun send() = preparationService.preparateBoundingBox()
+    fun send() = preparationService.prepareBoundingBox()
 
 }
