@@ -7,9 +7,9 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/")
-class Controller @Autowired constructor(private val preparationService: PreparationService, private val duplicatesService: DuplicatesService) {
+class Controller @Autowired constructor(private val ftpService: FtpService) {
 
     @GetMapping
-    fun send() = preparationService.prepareBoundingBox()
+    fun send() = ftpService.upload()
 
 }
