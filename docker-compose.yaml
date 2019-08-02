@@ -76,10 +76,19 @@ services:
 
   ftpd_server:
     image: stilliard/pure-ftpd:hardened
-    container_name: pure-ftpd
+    container_name: osmp4j-ftpd
     ports:
-      - 21:21
-      - 30000-30009:30000-30009
+      - 21
+      - 30000:30000
+      - 30001:30001
+      - 30002:30002
+      - 30003:30003
+      - 30004:30004
+      - 30005:30005
+      - 30006:30006
+      - 30007:30007
+      - 30008:30008
+      - 30009:30009
     environment:
       PUBLICHOST: "localhost"
       FTP_USER_NAME: osmp4jadmin
