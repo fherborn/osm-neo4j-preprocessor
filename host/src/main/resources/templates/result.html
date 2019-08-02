@@ -19,11 +19,11 @@
 </head>
 <body>
 <h1>Result</h1>
-<p th:text="'Taskname: ' + ${exportForm.taskName}"/>
-<p th:text="'From Latitude: ' + ${exportForm.fromLat}"/>
-<p th:text="'From Longitude: ' + ${exportForm.fromLon}"/>
-<p th:text="'To Latitude: ' + ${exportForm.toLat}"/>
-<p th:text="'To Longitude: ' + ${exportForm.toLon}"/>
+<p th:text="'Taskname: ' + ${boundingBox.taskName}"/>
+<p th:text="'From Latitude: ' + ${boundingBox.fromLat}"/>
+<p th:text="'From Longitude: ' + ${boundingBox.fromLon}"/>
+<p th:text="'To Latitude: ' + ${boundingBox.toLat}"/>
+<p th:text="'To Longitude: ' + ${boundingBox.toLon}"/>
 <a href="/">Submit another message</a>
 </body>
 </html>
