@@ -1,17 +1,3 @@
 package com.osmp4j.core.rabbitmq.models
 
-import com.osmp4j.core.rabbitmq.UUIDGenerator
-
-data class BoundingBox(
-
-        var taskName: String = "Task-${UUIDGenerator.randomUUID()}",
-
-        var fromLat: Double = 7.0862,
-
-        var fromLon: Double = 51.0138,
-
-        var toLat: Double = 7.7344,
-
-        var toLon: Double = 51.3134
-
-)
+data class BoundingBox(var fromLat: Double, var fromLon: Double, var toLat: Double, var toLon: Double)

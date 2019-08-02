@@ -1,6 +1,5 @@
 package com.osmp4j.host
 
-import com.osmp4j.host.models.BoundingBox
 import com.osmp4j.host.rabbit.DuplicatesService
 import com.osmp4j.host.rabbit.PreparationService
 import org.springframework.beans.factory.annotation.Autowired
@@ -38,12 +37,13 @@ class InterfaceController @Autowired constructor(private val preparationService:
 
     @GetMapping
     fun export(model: Model): String {
-        model.addAttribute("boundingBox", BoundingBox())
+        model.addAttribute("input", ExportTaskInputForm())
         return "index"
     }
 
     @PostMapping
-    fun greetingSubmit(@Valid @ModelAttribute("boundingBox") boundingBox: BoundingBox, model: Model): String {
+    fun greetingSubmit(@Valid @ModelAttribute("input") input: ExportTaskInputForm, model: Model): String {
+        model.addAttribute("boundingBox", input)
         return "result"
     }
 
