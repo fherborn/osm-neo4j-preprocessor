@@ -1,7 +1,6 @@
 package com.osmp4j.host
 
-import com.osmp4j.core.rabbitmq.QueuesNames
-import com.osmp4j.host.config.RabbitConf
+import com.osmp4j.core.rabbitmq.QueueNames
 import org.springframework.amqp.rabbit.annotation.RabbitListener
 import org.springframework.amqp.rabbit.core.RabbitTemplate
 import org.springframework.beans.factory.annotation.Autowired
@@ -12,10 +11,10 @@ class DuplicatesService @Autowired constructor(private val template: RabbitTempl
 
     fun removeDuplicates() {
         println("Host: Duplicates Request")
-        template.convertAndSend(QueuesNames.REQUEST_DUPLICATES,"Remove Duplicates")
+        template.convertAndSend(QueueNames.REQUEST_DUPLICATES,"Remove Duplicates")
     }
 
-    @RabbitListener(queues = [QueuesNames.RESPONSE_DUPLICATES])
+    @RabbitListener(queues = [QueueNames.RESPONSE_DUPLICATES])
     fun onDuplicatesResponse(message: String) {
         println("Host: Duplicates Response -> $message")
     }

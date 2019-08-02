@@ -3,7 +3,7 @@ version: '3.3'
 services:
   rabbitmq:
     image: rabbitmq:3.7.17-management
-    container_name: osmp4j-rabbi
+    container_name: osmp4j-rabbit
     restart: always
     environment:
       RABBITMQ_DEFAULT_USER: osmp4jadmin
@@ -15,7 +15,7 @@ services:
       - osmp4j
 
   agent-1:
-    image: osmp4j-agent
+    image: osmp4j/agent
     container_name: osmp4j-agent-1
     restart: always
     environment:
@@ -30,7 +30,7 @@ services:
       - rabbitmq
 
   agent-2:
-    image: osmp4j-agent
+    image: osmp4j/agent
     container_name: osmp4j-agent-2
     restart: always
     environment:
@@ -45,7 +45,7 @@ services:
       - rabbitmq
 
   agent-3:
-    image: osmp4j-agent
+    image: osmp4j/agent
     container_name: osmp4j-agent-3
     restart: always
     environment:
@@ -60,7 +60,7 @@ services:
       - rabbitmq
 
   host:
-    image: osmp4j-host
+    image: osmp4j/host
     container_name: osmp4j-host
     restart: always
     environment:
