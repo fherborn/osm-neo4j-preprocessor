@@ -1,0 +1,62 @@
+<!DOCTYPE HTML>
+<html class="h-100" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>OSMP4j</title>
+    <meta content="text/html; charset=UTF-8" http-equiv="Content-Type"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport">
+
+    <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Material+Icons" rel="stylesheet">
+    <link crossorigin="anonymous"
+          href="https://unpkg.com/bootstrap-material-design@4.1.1/dist/css/bootstrap-material-design.min.css"
+          integrity="sha384-wXznGJNEXNG1NFsbm0ugrLFMQPWswR3lds2VeinahP8N0zJw9VWSopbjv2x7WCvX" rel="stylesheet">
+
+    <script crossorigin="anonymous" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
+            src="https://code.jquery.com/jquery-3.2.1.slim.min.js"></script>
+    <script crossorigin="anonymous" integrity="sha384-fA23ZRQ3G/J53mElWqVJEGJzU0sTs+SvzG8fXVWP+kJQ1lwFAOkcUOysnlKJC33U"
+            src="https://unpkg.com/popper.js@1.12.6/dist/umd/popper.js"></script>
+    <script crossorigin="anonymous" integrity="sha384-CauSuKpEqAFajSpkdjv3z9t8E7RlpJ1UP0lKM/+NdtSarroVKu069AlsRPKkFBz9"
+            src="https://unpkg.com/bootstrap-material-design@4.1.1/dist/js/bootstrap-material-design.js"></script>
+</head>
+<body class="container-fluid  h-100">
+<div class="row h-100 justify-content-center align-items-center">
+    <div class="card col-lg-4">
+
+        <h5 class="card-header info-color white-text text-center py-4">
+            <strong>Export</strong>
+        </h5>
+
+        <div class="card-body px-lg-5 pt-0" style="padding-top: 16px !important;">
+
+            <form action="#" class="md-form" method="post" style="color: #757575;" th:action="@{/}"
+                  th:object="${exportForm}">
+
+
+                <label for="taskName">Task Name</label>
+                <input class="form-control" id="taskName" th:field="*{taskName}" type="text">
+
+                <label for="fromLat">From Latitude</label>
+                <input class="form-control" id="fromLat" max="85" min="-85" placeholder="*{fromLat}" step="any"
+                       th:field="*{fromLat}" type="number">
+
+                <label for="fromLon">From Longitude</label>
+                <input class="form-control" id="fromLon" max="180" min="-180" placeholder="*{fromLon}" step="any"
+                       th:field="*{fromLon}" type="number">
+
+                <label for="toLat">To Latitude</label>
+                <input class="form-control" id="toLat" max="85" min="-85" placeholder="*{toLat}" step="any"
+                       th:field="*{toLat}" type="number">
+
+                <label for="toLon">To Longitude</label>
+                <input class="form-control" id="toLon" max="180" min="-180" placeholder="*{toLon}" step="any"
+                       th:field="*{toLon}" type="number">
+
+                <button class="btn btn-outline-info btn-rounded btn-block z-depth-0 my-4 waves-effect" type="submit">
+                    Send
+                </button>
+
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+</html>
