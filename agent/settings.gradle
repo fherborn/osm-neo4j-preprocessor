@@ -1,0 +1,3 @@
+rootProject.name = "agent"
+
+includeBuild '../core'
