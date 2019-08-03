@@ -1,4 +1,4 @@
-package com.osmp4j.host
+package com.osmp4j.host.rabbit
 
 import com.osmp4j.core.rabbitmq.QueueNames
 import org.springframework.amqp.rabbit.annotation.RabbitListener
