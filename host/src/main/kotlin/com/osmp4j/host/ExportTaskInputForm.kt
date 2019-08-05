@@ -1,6 +1,6 @@
 package com.osmp4j.host
 
-import com.osmp4j.core.rabbitmq.UUIDGenerator
+import com.osmp4j.core.uuid.UUIDGenerator
 
 data class ExportTaskInputForm(
 
