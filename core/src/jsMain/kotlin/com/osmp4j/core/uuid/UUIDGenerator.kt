@@ -1,4 +1,4 @@
-package com.osmp4j.core.rabbitmq
+package com.osmp4j.core.uuid
 
 actual object UUIDGenerator {
     actual fun randomUUID(): String {
