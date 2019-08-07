@@ -37,6 +37,7 @@ kotlin {
         jvmMain {
             dependencies {
                 implementation kotlin('stdlib-jdk8')
+                implementation 'commons-net:commons-net:3.6'
             }
         }
         jvmTest {

@@ -7,9 +7,9 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/")
-class Controller @Autowired constructor(private val ftpService: FtpService) {
+class Controller @Autowired constructor() {
 
     @GetMapping
-    fun send() = ftpService.upload()
+    fun send(): String = TODO()
 
 }
