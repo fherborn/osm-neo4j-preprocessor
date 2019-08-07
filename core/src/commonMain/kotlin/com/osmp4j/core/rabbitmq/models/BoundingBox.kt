@@ -5,7 +5,8 @@ import com.osmp4j.core.distanceTo
 import com.osmp4j.core.toRadiant
 import kotlin.math.min
 
-data class BoundingBox private constructor(var fromLat: Double, var fromLon: Double, var toLat: Double, var toLon: Double) {
+data class BoundingBox(var fromLat: Double, var fromLon: Double, var toLat: Double, var toLon: Double) {
+
     fun widthDegree() = fromLon distanceTo toLon
     fun heightDegree() = fromLat distanceTo toLat
     fun widthRadiant() = widthDegree().toRadiant()
@@ -15,14 +16,15 @@ data class BoundingBox private constructor(var fromLat: Double, var fromLon: Dou
 
     private fun hDistance(lon: Double) = distanceInKm(fromLat, lon, toLat, lon)
     private fun vDistance(lat: Double) = distanceInKm(lat, fromLon, lat, toLon)
-  
+
     companion object {
-      fun create(fromLat: Double, toLat: Double, fromLon: Double, toLon: Double): BoundingBox {
-          val (fixedFromLat, fixedToLat) = extractFixedLatitudes(fromLat, toLat)
-          val (fixedFromLon, fixedToLon) = getFixedLongitudes(fromLon, toLon)
-          return BoundingBox(fixedFromLat, fixedToLat, fixedFromLon, fixedToLon)
-      }
-      private fun getFixedLongitudes(fromLon: Double, toLon: Double) = if (fromLon < toLon) (fromLon to toLon) else (toLon to fromLon)
-      private fun extractFixedLatitudes(fromLat: Double, toLat: Double) = if (fromLat < toLat) (fromLat to toLat) else (toLat to fromLat)
+        fun createFixed(fromLat: Double, fromLon: Double, toLat: Double, toLon: Double): BoundingBox {
+            val (fixedFromLat, fixedToLat) = extractFixedLatitudes(fromLat, toLat)
+            val (fixedFromLon, fixedToLon) = getFixedLongitudes(fromLon, toLon)
+            return BoundingBox(fixedFromLat, fixedFromLon, fixedToLat, fixedToLon)
+        }
+
+        private fun getFixedLongitudes(fromLon: Double, toLon: Double) = if (fromLon < toLon) (fromLon to toLon) else (toLon to fromLon)
+        private fun extractFixedLatitudes(fromLat: Double, toLat: Double) = if (fromLat < toLat) (fromLat to toLat) else (toLat to fromLat)
     }
 }
