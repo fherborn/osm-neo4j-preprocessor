@@ -3,6 +3,7 @@ package com.osmp4j.core.rabbitmq.models
 import com.osmp4j.core.uuid.UUIDGenerator
 
 
+
 sealed class Message(val id: String)
 
 sealed class Request(requestId: String) : Message(requestId)
