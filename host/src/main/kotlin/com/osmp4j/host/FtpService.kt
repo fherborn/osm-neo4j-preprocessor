@@ -10,10 +10,7 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.stereotype.Component
 import org.springframework.stereotype.Service
-import java.io.File
-import java.io.FileInputStream
-import java.io.IOException
-import java.io.PrintWriter
+import java.io.*
 
 
 @Component
@@ -78,6 +75,19 @@ class FtpService @Autowired constructor(private val ftpClientFactory: FTPClientF
 
         client.disconnect()
 
+        donwload()
+    }
+
+    fun donwload() {
+        val client : FTPClient = ftpClientFactory.getClient()
+
+        val file = File("output.txt")
+        client.retrieveFile("/test.txt", FileOutputStream(file))
+
+        client.disconnect()
+
+
+        println("Retrived file ${file.readText()}")
     }
 }
 
