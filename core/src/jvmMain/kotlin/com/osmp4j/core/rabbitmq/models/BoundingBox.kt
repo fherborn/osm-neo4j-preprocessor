@@ -3,9 +3,10 @@ package com.osmp4j.core.rabbitmq.models
 import com.osmp4j.core.distanceInKm
 import com.osmp4j.core.distanceTo
 import com.osmp4j.core.toRadiant
+import java.io.Serializable
 import kotlin.math.min
 
-data class BoundingBox(var fromLat: Double, var fromLon: Double, var toLat: Double, var toLon: Double) {
+data class BoundingBox(var fromLat: Double, var fromLon: Double, var toLat: Double, var toLon: Double) : Serializable {
 
     fun widthDegree() = fromLon distanceTo toLon
     fun heightDegree() = fromLat distanceTo toLat

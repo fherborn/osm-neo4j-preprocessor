@@ -1,8 +1,8 @@
 package com.osmp4j.host.config
 
-import com.osmp4j.core.rabbitmq.FTPClientFactory
-import com.osmp4j.core.rabbitmq.FtpProperties
-import com.osmp4j.core.rabbitmq.FtpService
+import com.osmp4j.core.FTPClientFactory
+import com.osmp4j.core.FtpProperties
+import com.osmp4j.core.FtpService
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.context.properties.ConfigurationProperties
