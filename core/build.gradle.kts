@@ -19,8 +19,8 @@ version = "0.0.1"
 
 
 repositories {
-    jcenter()
     mavenCentral()
+    jcenter()
     maven("https://repo.spring.io/snapshot")
     maven("https://repo.spring.io/milestone")
 }

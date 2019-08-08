@@ -1,5 +1,8 @@
 package com.osmp4j.mq
 
+import java.io.Serializable
+import java.util.*
+
 sealed class Message(val id: UUID) : Serializable
 sealed class Request(val taskName: String, id: UUID) : Message(id)
 
