@@ -1,16 +1,13 @@
 package com.osmp4j.host.rabbit
 
-import com.osmp4j.core.rabbitmq.QueueNames
-import com.osmp4j.core.rabbitmq.models.BoundingBox
-import com.osmp4j.core.rabbitmq.models.PreparationRequest
-import com.osmp4j.core.rabbitmq.models.Request
-import com.osmp4j.core.rabbitmq.models.Response
+import com.osmp4j.mq.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.amqp.rabbit.annotation.RabbitListener
 import org.springframework.amqp.rabbit.core.RabbitTemplate
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
+import java.util.*
 import kotlin.math.ceil
 import kotlin.math.min
 
@@ -18,7 +15,7 @@ import kotlin.math.min
 class PreparationService @Autowired constructor(private val template: RabbitTemplate) {
 
     private val logger = LoggerFactory.getLogger(PreparationService::class.java)
-    private val pendingRequests = hashMapOf<String, Request>()
+    private val pendingRequests = hashMapOf<UUID, Request>()
 
 
     @RabbitListener(queues = [QueueNames.RESPONSE_PREPARATION])

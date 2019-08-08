@@ -29,7 +29,7 @@ class FTPClientFactory(private val properties: FtpProperties) {
     }
 }
 
-class FtpService (private val ftpClientFactory: FTPClientFactory) {
+class FtpService(private val ftpClientFactory: FTPClientFactory) {
 
 
     fun upload(path: String, data: File) {
@@ -39,7 +39,7 @@ class FtpService (private val ftpClientFactory: FTPClientFactory) {
     }
 
     fun donwload(path: String) {
-        val client : FTPClient = ftpClientFactory.getClient()
+        val client: FTPClient = ftpClientFactory.getClient()
         val file = File("output.txt")
         client.retrieveFile(path, FileOutputStream(file))
         client.disconnect()
