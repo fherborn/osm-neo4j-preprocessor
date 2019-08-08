@@ -3,8 +3,6 @@ package com.osmp4j.ftp
 import org.apache.commons.net.ftp.FTPClient
 import org.springframework.stereotype.Service
 import java.io.File
-import java.io.FileInputStream
-import java.io.FileOutputStream
 
 @Service
 class FtpService(private val ftpClientFactory: FTPClientFactory) {

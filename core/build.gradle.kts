@@ -1,4 +1,5 @@
 import io.spring.gradle.dependencymanagement.dsl.DependencyManagementExtension
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.springframework.boot.gradle.tasks.bundling.BootJar
 
 val springBootVersion = "2.1.7.RELEASE"
@@ -12,6 +13,7 @@ plugins {
     kotlin("plugin.spring") version "1.3.41"
     id("org.springframework.boot") version "2.1.7.RELEASE"
     id("io.spring.dependency-management") version "1.0.8.RELEASE"
+    `maven-publish`
 }
 
 group = "com.osmp4j"
@@ -44,5 +46,19 @@ tasks.getByName<Jar>("jar") {
 }
 
 tasks.getByName<BootJar>("bootJar") {
+    enabled = true
     mainClassName = "com.osmp4j.CoreApplication"
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+}
+
+kotlin {
+}
+
+tasks.withType<KotlinCompile> {
+    kotlinOptions.freeCompilerArgs = listOf("-Xjsr305=strict")
+    kotlinOptions.jvmTarget = "1.8"
 }

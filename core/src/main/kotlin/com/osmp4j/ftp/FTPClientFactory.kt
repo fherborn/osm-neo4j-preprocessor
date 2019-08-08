@@ -29,7 +29,4 @@ class FTPClientFactory(private val properties: FtpProperties) {
         client.login(properties.user, properties.pass)
         return client
     }
-
-    private fun FTPClient.checkCompletion() {
-    }
 }
