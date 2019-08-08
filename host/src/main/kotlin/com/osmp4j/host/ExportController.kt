@@ -18,7 +18,7 @@ import kotlin.math.*
 class ExportService(private val preparationService: PreparationService) {
 
     fun export(taskName: String, fromLat: Double, toLat: Double, fromLon: Double, toLon: Double) {
-        val boundingBox = BoundingBox.create(fromLat, toLat, fromLon, toLon)
+        val boundingBox = BoundingBox.createFixed(fromLat, toLat, fromLon, toLon)
 
         val boundingBoxes = getSplittedBoxes(boundingBox)
 
