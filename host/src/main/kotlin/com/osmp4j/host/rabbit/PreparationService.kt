@@ -23,15 +23,14 @@ class PreparationService @Autowired constructor(private val template: RabbitTemp
         println("Host: Preparation Response -> $message")
     }
 
-    fun prepare(taskName: String, boundingBox: BoundingBox) {
+    fun prepare(taskName: String, tileSize: Int, boundingBox: BoundingBox) {
         logger.startedPreparation(taskName)
-        val boundingBoxes = splitBoundingBox(boundingBox)
+        val boundingBoxes = splitBoundingBox(boundingBox, tileSize)
         createAgentRequests(taskName, boundingBoxes)
 
     }
 
-    private fun splitBoundingBox(boundingBox: BoundingBox): List<BoundingBox> {
-        val tileSize = 20
+    private fun splitBoundingBox(boundingBox: BoundingBox, tileSize: Int): List<BoundingBox> {
 
         val tileCountHorizontal = ceil(boundingBox.minWidthInKm() / tileSize).toInt()
         val tileWidth = boundingBox.widthDegree() / tileCountHorizontal
