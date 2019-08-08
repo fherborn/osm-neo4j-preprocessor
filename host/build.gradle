@@ -27,11 +27,11 @@ apply plugin: 'kotlin-allopen'
 
 group = 'com.osmp4j'
 version = '0.0.1-SNAPSHOT'
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
 
 repositories {
+    jcenter()
     mavenCentral()
+    mavenLocal()
     maven { url = uri("https://repo.spring.io/milestone") }
     maven { url = uri("https://repo.spring.io/snapshot") }
 }
@@ -45,7 +45,9 @@ dependencies {
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
-    implementation("com.osmp4j:core")
+    implementation("com.osmp4j:core:0.0.1")    
+//    implementation(project(":core"))
+    testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation('org.junit.jupiter:junit-jupiter-api:5.5.1')
 }
 
@@ -61,6 +63,8 @@ task buildDocker(type: Docker, dependsOn: build) {
     entryPoint(['java',"-Djava.security.egd=file:/dev/./urandom","-jar","/${jarName}"])
 }
 
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
 
 compileKotlin {
     kotlinOptions {

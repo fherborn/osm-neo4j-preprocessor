@@ -1,6 +1,6 @@
 package com.osmp4j.host.config
 
-import com.osmp4j.core.rabbitmq.QueueNames
+import com.osmp4j.mq.QueueNames
 import org.springframework.amqp.core.Queue
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration

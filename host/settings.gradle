@@ -1,3 +1,5 @@
 rootProject.name = "host"
 
-includeBuild '../core'
+includeBuild('../core')
+//include ":core"
+//project(":core").projectDir = file("../core")
