@@ -1,6 +1,6 @@
 package com.osmp4j.host.controller
 
-import com.osmp4j.ftp.FtpService
+import com.osmp4j.ftp.FTPService
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
@@ -10,18 +10,19 @@ import java.util.*
 
 @RestController
 @RequestMapping("test")
-class TestController @Autowired constructor(private val ftpService: FtpService) {
+class TestController @Autowired constructor(private val ftpService: FTPService) {
 
     @GetMapping("/ftp")
     fun testFTP() {
         val file = File("${UUID.randomUUID()}.txt")
         file.createNewFile()
         file.writeText("Hallo123")
-        ftpService.upload("test.txt", file)
+        ftpService.upload("/tmp.txt", file)
         file.delete()
 
         val outFile = File("output.txt")
-        ftpService.donwload("test.txt", outFile)
-        println(file.useLines { it.firstOrNull() })
+        ftpService.download("/tmp", outFile)
+        println(outFile.readText())
+        outFile.delete()
     }
 }

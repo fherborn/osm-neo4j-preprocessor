@@ -18,13 +18,14 @@ class FTPClientFactory(private val properties: FtpProperties) {
     fun getClient(): FTPClient {
         val client = FTPClient()
         client.addProtocolCommandListener(PrintCommandListener(PrintWriter(System.out)))
-        logger.debug("Connect FTP Host: ${properties.host} Port: ${properties.port} User: ${properties.user}")
+        logger.debug("Connect FTPService Host: ${properties.host} Port: ${properties.port}")
         client.connect(properties.host, properties.port)
 
-        if (!FTPReply.isPositiveCompletion(client.reply)) {
+        if (!FTPReply.isPositiveCompletion(client.replyCode)) {
             client.disconnect()
-            throw IOException("Exception in connecting to FTP Server")
+            throw IOException("Exception in connecting to FTPService Server")
         }
+        logger.debug("Login FTPService: User: ${properties.user} Pass: ${properties.pass}")
 
         client.login(properties.user, properties.pass)
         return client
