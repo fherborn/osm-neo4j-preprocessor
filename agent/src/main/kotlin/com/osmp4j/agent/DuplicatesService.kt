@@ -1,9 +1,9 @@
 package com.osmp4j.agent
 
-import com.osmp4j.core.rabbitmq.QueueNames
-import com.osmp4j.core.rabbitmq.models.DuplicateRequest
-import com.osmp4j.core.rabbitmq.models.Success
 import org.slf4j.LoggerFactory
+import com.osmp4j.mq.DuplicateRequest
+import com.osmp4j.mq.QueueNames
+import com.osmp4j.mq.Success
 import org.springframework.amqp.rabbit.annotation.RabbitListener
 import org.springframework.amqp.rabbit.core.RabbitTemplate
 import org.springframework.beans.factory.annotation.Autowired

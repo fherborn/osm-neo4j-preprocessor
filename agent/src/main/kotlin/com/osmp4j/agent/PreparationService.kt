@@ -1,8 +1,8 @@
 package com.osmp4j.agent
 
-import com.osmp4j.core.rabbitmq.QueueNames
-import com.osmp4j.core.rabbitmq.models.PreparationRequest
-import com.osmp4j.core.rabbitmq.models.Success
+import com.osmp4j.mq.PreparationRequest
+import com.osmp4j.mq.QueueNames
+import com.osmp4j.mq.Success
 import org.slf4j.LoggerFactory
 import org.springframework.amqp.rabbit.annotation.RabbitListener
 import org.springframework.amqp.rabbit.core.RabbitTemplate
