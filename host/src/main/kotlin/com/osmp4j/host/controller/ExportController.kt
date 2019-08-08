@@ -18,8 +18,6 @@ data class ExportTaskInputForm(
 
         var taskName: String = "Task-${UUID.randomUUID()}",
 
-        val preferredSplitCount: Int = 20,
-
         var fromLat: Double = 7.0862,
 
         var fromLon: Double = 51.0138,
@@ -49,8 +47,7 @@ class ExportController @Autowired constructor(private val preparationService: Pr
     private fun Logger.receivedInput(input: ExportTaskInputForm) =
             this.debug("Received task: ${input.taskName} with bounding box: ${input.fromLat}, ${input.fromLon}, ${input.toLat}, ${input.toLon}")
 
-    private fun BoundingBox.Companion.from(input: ExportTaskInputForm) =
-            BoundingBox.createFixed(input.fromLat, input.fromLon, input.toLat, input.toLon)
+    private fun BoundingBox.Companion.from(input: ExportTaskInputForm) = createFixed(input.fromLat, input.fromLon, input.toLat, input.toLon)
 
 
     private fun getResultTemplate(model: Model, input: ExportTaskInputForm): String {

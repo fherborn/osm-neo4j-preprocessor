@@ -8,19 +8,45 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import java.util.*
+import kotlin.NoSuchElementException
 import kotlin.math.ceil
 import kotlin.math.min
+
+fun <T, O> HashMap<T, O>.pop(key: T) = get(key)?.also { remove(key) }?:throw NoSuchElementException()
 
 @Service
 class PreparationService @Autowired constructor(private val template: RabbitTemplate) {
 
     private val logger = LoggerFactory.getLogger(PreparationService::class.java)
-    private val pendingRequests = hashMapOf<UUID, Request>()
+    private val pendingRequests = hashMapOf<UUID, PreparationRequest>()
 
 
     @RabbitListener(queues = [QueueNames.RESPONSE_PREPARATION])
-    fun onPreparationResponse(message: Response) {
-        println("Host: Preparation Response -> $message")
+    fun onPreparationResponse(message: PreparationResponse) {
+        logger.debug("Preparation Response -> $message")
+        val request = pendingRequests.pop(message.id)
+
+        //TODO remove duplicates task creation
+
+        if(pendingRequests.isEmpty())
+            logger.debug("Preparation finished")
+    }
+
+    @RabbitListener(queues = [QueueNames.ERROR_PREPARATION])
+    fun onErrorResponse(message: PreparationError) {
+        when(message) {
+            is BoxToLargeError -> {
+                logger.debug("Box to large, start splitting in smaller tiles.")
+                val oldRequest = pendingRequests.pop(message.id)
+
+                val box = oldRequest.boundingBox
+                logger.debug("Boxwidth: ${box.widthDegree()} height: ${box.heightDegree()}")
+
+                val newBoxes = splitBoundingBox(box, box.widthDegree()/2, box.heightDegree()/2)
+                createAgentRequests(oldRequest.taskName, newBoxes)
+            }
+            else -> println("Host: Preparation Response -> $message")
+        }
     }
 
     fun prepare(taskName: String, boundingBox: BoundingBox) {
@@ -30,14 +56,16 @@ class PreparationService @Autowired constructor(private val template: RabbitTemp
 
     }
 
-    private fun splitBoundingBox(boundingBox: BoundingBox): List<BoundingBox> {
-        val tileSize = 20
+    private fun splitBoundingBox(boundingBox: BoundingBox, preferredTileWidth: Double = 0.25, preferredTileHeight: Double = 0.25): List<BoundingBox> {
 
-        val tileCountHorizontal = ceil(boundingBox.minWidthInKm() / tileSize).toInt()
+
+        val tileCountHorizontal = ceil(boundingBox.widthDegree() / preferredTileWidth).toInt()
         val tileWidth = boundingBox.widthDegree() / tileCountHorizontal
 
-        val tileCountVertical = ceil(boundingBox.minHeightInKm() / tileSize).toInt()
+        val tileCountVertical = ceil(boundingBox.heightDegree() / preferredTileHeight).toInt()
         val tileHeight = boundingBox.heightDegree() / tileCountVertical
+
+        logger.debug("Tile width: $tileWidth x $tileHeight")
 
         val startLat = min(boundingBox.fromLat, boundingBox.toLat)
         val startLon = min(boundingBox.fromLon, boundingBox.toLon)
@@ -48,8 +76,8 @@ class PreparationService @Autowired constructor(private val template: RabbitTemp
             BoundingBox(
                     startLat + latIndex * tileWidth,
                     startLon + lonIndex * tileHeight,
-                    startLat + latIndex * (tileWidth + 1),
-                    startLon + lonIndex * (tileHeight + 1)
+                    startLat + (latIndex + 1) * tileWidth,
+                    startLon + (lonIndex + 1)* tileHeight
             )
         }
     }

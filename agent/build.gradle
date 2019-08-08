@@ -45,7 +45,7 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     implementation("com.osmp4j:core:0.0.1")
-//    implementation(project(":core"))
+    implementation group: 'com.fasterxml.jackson.module', name: 'jackson-module-kotlin', version: '2.10.0.pr1'
     testImplementation('org.junit.jupiter:junit-jupiter-api:5.5.1')
 }
 

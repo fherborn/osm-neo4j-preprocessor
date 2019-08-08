@@ -3,13 +3,15 @@ package com.osmp4j.mq
 import java.io.Serializable
 import java.util.*
 
-sealed class Message(val id: UUID) : Serializable
-sealed class Request(val taskName: String, id: UUID) : Message(id)
+interface MQMessage : Serializable {
+    val id: UUID
+}
 
+data class PreparationRequest(val taskName: String, val boundingBox: BoundingBox, override val id: UUID = UUID.randomUUID()) : MQMessage
+data class DuplicateRequest(val taskName: String, val fileName: String, override val id: UUID = UUID.randomUUID()) : MQMessage
 
-class PreparationRequest(taskName: String, val boundingBox: BoundingBox, id: UUID = UUID.randomUUID()) : Request(taskName, id)
-class DuplicateRequest(taskName: String, val fileName: String, id: UUID = UUID.randomUUID()) : Request(taskName, id)
+data class PreparationResponse(val fileName: String, override val id: UUID) : MQMessage
+data class DuplicateResponse(val fileName: String, override val id: UUID) : MQMessage
 
-sealed class Response(id: UUID) : Message(id)
-class Success(val fileName: String, id: UUID) : Response(id)
-class Error(val message: String, id: UUID) : Response(id)
+sealed class PreparationError(val message: String, override val id: UUID) : MQMessage
+class BoxToLargeError(id: UUID) : PreparationError("The bounding box is to large!", id)
