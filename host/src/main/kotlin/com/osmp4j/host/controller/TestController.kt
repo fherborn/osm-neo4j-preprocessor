@@ -14,9 +14,14 @@ class TestController @Autowired constructor(private val ftpService: FtpService) 
 
     @GetMapping("/ftp")
     fun testFTP() {
-        val file = File(UUID.randomUUID().toString())
+        val file = File("${UUID.randomUUID()}.txt")
         file.createNewFile()
         file.writeText("Hallo123")
-        ftpService.upload("/test", file)
+        ftpService.upload("test.txt", file)
+        file.delete()
+
+        val outFile = File("output.txt")
+        ftpService.donwload("test.txt", outFile)
+        println(file.useLines { it.firstOrNull() })
     }
 }

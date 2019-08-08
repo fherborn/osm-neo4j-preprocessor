@@ -1,6 +1,5 @@
 import io.spring.gradle.dependencymanagement.dsl.DependencyManagementExtension
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-import org.springframework.boot.gradle.tasks.bundling.BootJar
 
 val springBootVersion = "2.1.7.RELEASE"
 val jupiterVersion = "5.5.1"
@@ -45,10 +44,10 @@ tasks.getByName<Jar>("jar") {
     enabled = true
 }
 
-tasks.getByName<BootJar>("bootJar") {
-    enabled = true
-    mainClassName = "com.osmp4j.CoreApplication"
-}
+//tasks.getByName<BootJar>("bootJar") {
+//    enabled = true
+//    mainClassName = "com.osmp4j.CoreApplication"
+//}
 
 java {
     sourceCompatibility = JavaVersion.VERSION_1_8
