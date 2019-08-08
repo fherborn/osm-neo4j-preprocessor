@@ -4,6 +4,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 val springBootVersion = "2.1.7.RELEASE"
 val jupiterVersion = "5.5.1"
 val commonsVersion = "3.6"
+val httpClientVersion = "4.5.0"
 
 plugins {
     kotlin("jvm") version "1.3.41"
@@ -31,7 +32,9 @@ dependencies {
     implementation("commons-net:commons-net:$commonsVersion")
     implementation("org.springframework.boot:spring-boot-starter:$springBootVersion")
     implementation("org.springframework.boot:spring-boot-starter-amqp:$springBootVersion")
+    implementation("org.apache.httpcomponents:httpclient:$httpClientVersion")
     testImplementation("org.junit.jupiter:junit-jupiter-api:$jupiterVersion")
+
 }
 
 configure<DependencyManagementExtension> {

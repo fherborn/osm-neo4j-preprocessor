@@ -1,5 +1,6 @@
 package com.osmp4j.agent
 
+import com.osmp4j.http.HttpService
 import com.osmp4j.mq.PreparationRequest
 import com.osmp4j.mq.QueueNames
 import com.osmp4j.mq.Success
@@ -10,7 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 
 @Service
-class PreparationService @Autowired constructor(private val template: RabbitTemplate) {
+class PreparationService @Autowired constructor(private val template: RabbitTemplate, private val httpService: HttpService) {
 
     private val logger = LoggerFactory.getLogger(PreparationService::class.java)
 
@@ -20,7 +21,7 @@ class PreparationService @Autowired constructor(private val template: RabbitTemp
         logger.debug("Received request with ID: ${request.id}, BoundingBox: ${request.boundingBox}")
 
         //Test
-        OsmConnectionService(OsmConnectionFactory()).requestMapData()
+        httpService.download(request.boundingBox.toQuery("node"))
 
         template.convertAndSend(QueueNames.RESPONSE_PREPARATION, Success("filename", request.id))
     }

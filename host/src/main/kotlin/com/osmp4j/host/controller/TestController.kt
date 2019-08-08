@@ -1,6 +1,9 @@
 package com.osmp4j.host.controller
 
 import com.osmp4j.ftp.FTPService
+import com.osmp4j.host.rabbit.PreparationService
+import com.osmp4j.mq.BoundingBox
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
@@ -10,7 +13,9 @@ import java.util.*
 
 @RestController
 @RequestMapping("test")
-class TestController @Autowired constructor(private val ftpService: FTPService) {
+class TestController @Autowired constructor(private val ftpService: FTPService, private val preparationService: PreparationService) {
+
+    private val logger = LoggerFactory.getLogger(TestController::class.java)
 
     @GetMapping("/ftp")
     fun testFTP() {
@@ -24,5 +29,13 @@ class TestController @Autowired constructor(private val ftpService: FTPService) 
         ftpService.download("/tmp", outFile)
         println(outFile.readText())
         outFile.delete()
+    }
+
+    @GetMapping("/osm")
+    fun testOSM() {
+
+        logger.debug("Preparing request")
+        preparationService.prepare("test", BoundingBox.createFixed(7.84754, 51.02836, 7.84938, 51.0298))
+
     }
 }
