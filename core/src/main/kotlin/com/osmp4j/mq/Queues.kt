@@ -1,13 +1,12 @@
-package com.osmp4j.agent.config
+package com.osmp4j.mq
 
-import com.osmp4j.mq.QueueNames
 import org.springframework.amqp.core.Queue
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 
 
 @Configuration
-class RabbitConf {
+class Queues {
 
     @Bean
     fun requestPreparationQueue(): Queue {
@@ -20,6 +19,11 @@ class RabbitConf {
     }
 
     @Bean
+    fun errorPreparationQueue(): Queue {
+        return Queue(QueueNames.ERROR_PREPARATION, false)
+    }
+
+    @Bean
     fun requestDuplicatesQueue(): Queue {
         return Queue(QueueNames.REQUEST_DUPLICATES, false)
     }
@@ -27,6 +31,11 @@ class RabbitConf {
     @Bean
     fun responseDuplicatesQueue(): Queue {
         return Queue(QueueNames.RESPONSE_DUPLICATES, false)
+    }
+
+    @Bean
+    fun errorDuplicatesQueue(): Queue {
+        return Queue(QueueNames.ERROR_DUPLICATES, false)
     }
 
 }

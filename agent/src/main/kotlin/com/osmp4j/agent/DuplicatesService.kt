@@ -1,9 +1,9 @@
 package com.osmp4j.agent
 
-import org.slf4j.LoggerFactory
 import com.osmp4j.mq.DuplicateRequest
+import com.osmp4j.mq.DuplicateResponse
 import com.osmp4j.mq.QueueNames
-import com.osmp4j.mq.Success
+import org.slf4j.LoggerFactory
 import org.springframework.amqp.rabbit.annotation.RabbitListener
 import org.springframework.amqp.rabbit.core.RabbitTemplate
 import org.springframework.beans.factory.annotation.Autowired
@@ -19,7 +19,7 @@ class DuplicatesService @Autowired constructor(private val template: RabbitTempl
 
         logger.debug("Received Duplicate_Request with ID: ${request.id}")
 
-        template.convertAndSend(QueueNames.RESPONSE_DUPLICATES, Success("", request.id))
+        template.convertAndSend(QueueNames.RESPONSE_DUPLICATES, DuplicateResponse("", request.id))
     }
 
 }

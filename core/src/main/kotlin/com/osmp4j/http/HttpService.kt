@@ -1,12 +1,12 @@
 package com.osmp4j.http
 
-import org.apache.http.client.methods.HttpPost
-import org.apache.http.entity.ContentType
-import org.apache.http.entity.StringEntity
+import org.apache.http.client.methods.HttpGet
 import org.apache.http.impl.client.HttpClientBuilder
-import org.apache.http.util.EntityUtils
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import java.io.BufferedInputStream
+import java.io.BufferedOutputStream
+import java.io.File
 
 
 @Service
@@ -14,22 +14,31 @@ class HttpService {
 
     private val logger = LoggerFactory.getLogger(HttpService::class.java)
 
-    fun download(queryBody: String): String {
+    fun download(url: String, outFileName: String): File {
 
-        logger.debug("Downloading")
-
-        val url = "http://overpass-api.de/api/interpreter"
-
-        val entity = StringEntity(queryBody,
-                ContentType.APPLICATION_FORM_URLENCODED)
-
+        logger.debug("Start downloading from $url to $outFileName.")
         val httpClient = HttpClientBuilder.create().build()
-        val request = HttpPost(url)
-        request.entity = entity
 
+        val request = HttpGet(url)
         val response = httpClient.execute(request)
 
-        return EntityUtils.toString(response.entity, "UTF-8")
+        val bis = BufferedInputStream(response.entity.content)
+
+        val file = File(outFileName).apply { createNewFile() }
+        val bos = BufferedOutputStream(file.outputStream())
+
+        while (true) {
+            val inByte = bis.read()
+            if (inByte == -1) break
+            bos.write(inByte)
+        }
+
+        bis.close()
+        bos.close()
+
+        logger.debug("Finish downloading.")
+
+        return file
 
     }
 }

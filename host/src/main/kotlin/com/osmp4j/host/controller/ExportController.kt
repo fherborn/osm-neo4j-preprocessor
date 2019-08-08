@@ -18,8 +18,6 @@ data class ExportTaskInputForm(
 
         var taskName: String = "Task-${UUID.randomUUID()}",
 
-        val tileSize: Int = 2,
-
         var fromLat: Double = 7.0862,
 
         var fromLon: Double = 51.0138,
@@ -42,7 +40,7 @@ class ExportController @Autowired constructor(private val preparationService: Pr
     @PostMapping
     fun exportSubmit(@Valid @ModelAttribute(INPUT_ATTRIBUTE) input: ExportTaskInputForm, model: Model): String {
         logger.receivedInput(input)
-        preparationService.prepare(input.taskName, input.tileSize, BoundingBox.from(input))
+        preparationService.prepare(input.taskName, BoundingBox.from(input))
         return getResultTemplate(model, input)
     }
 

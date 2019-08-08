@@ -33,7 +33,6 @@ class TestController @Autowired constructor(private val ftpService: FTPService, 
 
     @GetMapping("/osm")
     fun testOSM() {
-
         logger.debug("Preparing request")
         preparationService.prepare("test", BoundingBox.createFixed(7.84754, 51.02836, 7.84938, 51.0298))
 
