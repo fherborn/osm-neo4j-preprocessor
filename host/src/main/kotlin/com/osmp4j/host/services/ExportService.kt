@@ -1,6 +1,5 @@
 package com.osmp4j.host.services
 
-import com.osmp4j.extensions.getOrThrow
 import com.osmp4j.extensions.identityMapOf
 import com.osmp4j.extensions.pop
 import com.osmp4j.extensions.put
@@ -31,7 +30,7 @@ class ExportService @Autowired constructor(private val template: RabbitTemplate)
 
     fun startExport(task: Task) {
         tasks.put(task)
-        logger.exportStarted(task)
+        logger.exportStarted(task.id)
         startPreparation(task)
     }
 
@@ -47,8 +46,7 @@ class ExportService @Autowired constructor(private val template: RabbitTemplate)
     }
 
     private fun finishTaskPreparation(taskId: UUID) {
-        val task = tasks.getOrThrow(taskId)
-        logger.debug("Preparation for ${task.name} finished!")
+        logger.preparationFinished(taskId)
     }
 
     private fun isTaskPreparationFinished(taskId: UUID) = !preparationRequestsTasks.containsValue(taskId)
@@ -65,11 +63,13 @@ class ExportService @Autowired constructor(private val template: RabbitTemplate)
 
 
     private fun startPreparation(task: Task) {
+        logger.preparationStarted(task.id)
         val boxes = task.box.split(0.25)
         prepare(task.id, boxes)
     }
 
     private fun retryPreparation(taskId: UUID, box: BoundingBox) {
+        logger.boxToLarge(taskId, box)
         val boxes = box.split(box.widthDegree() / 2, box.heightDegree() / 2)
         prepare(taskId, boxes)
     }
@@ -84,6 +84,12 @@ class ExportService @Autowired constructor(private val template: RabbitTemplate)
         template.convertAndSend(QueueNames.PREPARATION_REQUEST, request)
     }
 
-    private fun Logger.exportStarted(task: Task) = debug("Started export of ${task.box}")
+    private fun Logger.exportStarted(task: UUID) = task(task) { "Export of ${it.box} started" }
+    private fun Logger.preparationFinished(task: UUID) = task(task) { "Preparation finished" }
+    private fun Logger.preparationStarted(task: UUID) = task(task) { "Preparation started" }
+    private fun Logger.boxToLarge(task: UUID, box: BoundingBox) = task(task) { "Box $box to large, splitting started." }
+    private fun Logger.task(taskId: UUID, createMessage: (task: Task) -> String) = tasks[taskId]?.let {
+        debug("Task: $taskId -> ${createMessage(it)}")
+    }
 
 }
