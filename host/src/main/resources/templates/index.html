@@ -34,6 +34,9 @@
                 <label for="taskName">Task Name</label>
                 <input class="form-control" id="taskName" th:field="*{taskName}" type="text">
 
+                <label for="email">Email</label>
+                <input class="form-control" id="email" th:field="*{email}" type="email">
+
                 <label for="fromLat">From Latitude</label>
                 <input class="form-control" id="fromLat" max="85" min="-85" placeholder="*{fromLat}" step="any"
                        th:field="*{fromLat}" type="number">
