@@ -1,7 +1,10 @@
-package com.osmp4j.agent
+package com.osmp4j.agent.services
 
 import com.osmp4j.ftp.FTPService
 import com.osmp4j.http.HttpService
+import com.osmp4j.messages.BoundingBoxToLargeError
+import com.osmp4j.messages.PreparationRequest
+import com.osmp4j.messages.PreparationResponse
 import com.osmp4j.mq.*
 import org.slf4j.LoggerFactory
 import org.springframework.amqp.rabbit.annotation.RabbitListener
@@ -24,11 +27,11 @@ class PreparationService @Autowired constructor(
 
     private val logger = LoggerFactory.getLogger(PreparationService::class.java)
 
-    @RabbitListener(queues = [QueueNames.REQUEST_PREPARATION])
+    @RabbitListener(queues = [QueueNames.PREPARATION_REQUEST])
     fun onPreparationRequest(request: PreparationRequest) {
 
-
         //TODO Precheck errors like size. Because the client knows his source(osm) ans his restrictions
+
         logger.debug("Received request with ID: ${request.id}, BoundingBox: ${request.boundingBox}")
 
         val boundingBox = request.boundingBox
@@ -43,7 +46,7 @@ class PreparationService @Autowired constructor(
 
         if (potentialError.startsWith(BOX_TO_LARGE_ERROR_START)) {
             logger.debug("Box to large, sending error to host.")
-            template.convertAndSend(QueueNames.ERROR_PREPARATION, BoxToLargeError(request.id))
+            template.convertAndSend(QueueNames.PREPARATION_ERROR, BoundingBoxToLargeError(boundingBox, request.id))
         } else {
             logger.debug("No Errors found.")
             //TODO start preprocessing
@@ -62,7 +65,7 @@ class PreparationService @Autowired constructor(
             "https://www.openstreetmap.org/api/0.6/map?bbox=${boundingBox.fromLat},${boundingBox.fromLon},${boundingBox.toLat},${boundingBox.toLon}"
 
     private fun sendResultToHost(fileName: String, request: PreparationRequest) {
-        template.convertAndSend(QueueNames.RESPONSE_PREPARATION, PreparationResponse(fileName, request.id))
+        template.convertAndSend(QueueNames.PREPARATION_RESPONSE, PreparationResponse(fileName, request.id))
     }
 
     private fun upload(fileName: String, file: File) {

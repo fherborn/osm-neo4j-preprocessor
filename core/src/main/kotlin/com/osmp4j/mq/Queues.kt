@@ -10,17 +10,17 @@ class Queues {
 
     @Bean
     fun requestPreparationQueue(): Queue {
-        return Queue(QueueNames.REQUEST_PREPARATION, false)
+        return Queue(QueueNames.PREPARATION_REQUEST, false)
     }
 
     @Bean
     fun responsePreparationQueue(): Queue {
-        return Queue(QueueNames.RESPONSE_PREPARATION, false)
+        return Queue(QueueNames.PREPARATION_RESPONSE, false)
     }
 
     @Bean
     fun errorPreparationQueue(): Queue {
-        return Queue(QueueNames.ERROR_PREPARATION, false)
+        return Queue(QueueNames.PREPARATION_ERROR, false)
     }
 
     @Bean

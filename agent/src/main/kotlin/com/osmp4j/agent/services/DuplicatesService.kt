@@ -1,7 +1,7 @@
-package com.osmp4j.agent
+package com.osmp4j.agent.services
 
-import com.osmp4j.mq.DuplicateRequest
-import com.osmp4j.mq.DuplicateResponse
+import com.osmp4j.messages.DuplicateRequest
+import com.osmp4j.messages.DuplicateResponse
 import com.osmp4j.mq.QueueNames
 import org.slf4j.LoggerFactory
 import org.springframework.amqp.rabbit.annotation.RabbitListener
