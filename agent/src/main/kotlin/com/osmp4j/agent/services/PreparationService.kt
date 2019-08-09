@@ -6,7 +6,7 @@ import com.fasterxml.jackson.module.kotlin.readValue
 import com.fasterxml.jackson.module.paramnames.ParameterNamesModule
 import com.osmp4j.agent.models.OsmRoot
 import com.osmp4j.ftp.FTPService
-import com.osmp4j.http.HttpService
+import com.osmp4j.http.*
 import com.osmp4j.messages.BoundingBoxToLargeError
 import com.osmp4j.messages.PreparationError
 import com.osmp4j.messages.PreparationRequest
@@ -21,10 +21,12 @@ import org.springframework.stereotype.Service
 import java.io.File
 import java.util.*
 
-
 fun File.readFirstLine(): String = bufferedReader().use { it.readLine() }
 
 private const val BOX_TO_LARGE_ERROR_START = "You requested too many nodes"
+private const val VALID_DATA_START = "You requested too many nodes"
+private const val DOWNLOAD_LIMIT_ERROR_START = "<?xml "
+
 
 @Service
 class PreparationService @Autowired constructor(
@@ -44,27 +46,57 @@ class PreparationService @Autowired constructor(
 
         val boundingBox = request.boundingBox
 
-        val file = download(boundingBox)
-
+        val downloadResult = download(boundingBox)
         logger.debug("Started checking for error")
 
-        when {
-            file.readFirstLine().startsWith(BOX_TO_LARGE_ERROR_START) -> boxToLargeErrorFound(boundingBox, request)
-            else -> startPreparing(file, request)
+        when (downloadResult) {
+            is DownloadError -> handleError(downloadResult, request)
+            is DownloadedFile -> startPreparing(downloadResult.file, request)
         }
     }
 
-    private fun startPreparing(rawFile: File, request: PreparationRequest) {
+    private fun handleError(error: DownloadError, request: PreparationRequest) {
+        when (error) {
+            is BandwidthExceededError -> bandWidthExceededErrorFound(error, request)
+            is BadRequestError -> boxToLargeErrorFound(request.boundingBox, request)
+            else -> logger.debug("Unknown error.")
+        }
+    }
 
+    private fun bandWidthExceededErrorFound(error: BandwidthExceededError, request: PreparationRequest) {
+        val waitSeconds = error.timeout + 1
+        logger.debug("Bandwidth exceeded error, try again in $waitSeconds seconds before try again.")
+        Thread.sleep(waitSeconds * 1000L)
+        onPreparationRequest(request)
+    }
+
+    private fun startPreparing(rawFile: File, request: PreparationRequest) {
         val mapper = XmlMapper()
         mapper.registerModule(ParameterNamesModule())
         mapper.registerModule(KotlinModule())
+
         val osmFile = mapper.readValue<OsmRoot>(rawFile.inputStream())
-        logger.debug("Node count: ${osmFile.node.count()}")
+        logger.debug("Node count: ${osmFile.node?.count()}")
+
+        val cities = osmFile.node
+                ?.asSequence()
+                ?.mapNotNull { it.tag }
+                ?.flatten()
+                ?.filter { it.k == "addr:city" }
+                ?.map { it.v }
+                ?.distinct()
+                ?.toList()
+
+        logger.debug("Cities: $cities")
+
+
+//        val preprocessedFile = File("${UUID.randomUUID()}.xml")
+//        preprocessedFile.createNewFile()
+//        mapper.writeValue(preprocessedFile.outputStream(), osmFile)
 
         logger.debug("Deleting local file")
-        rawFile.delete()
         publish(rawFile, request)
+        rawFile.delete()
     }
 
     private fun boxToLargeErrorFound(boundingBox: BoundingBox, request: PreparationRequest) {

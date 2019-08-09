@@ -1,72 +1,64 @@
 package com.osmp4j.agent.models
 
-import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlElementWrapper
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement
 import com.osmp4j.agent.noarg.NoArg
 
-@NoArg
 data class OsmFile(
         val osm: OsmRoot
 )
 
 @NoArg
 @JacksonXmlRootElement(localName = "osm")
-data class OsmRoot(
+class OsmRoot(
 
         @JacksonXmlProperty(isAttribute = true)
-        val version: String,
+        var version: Double,
 
         @JacksonXmlProperty(isAttribute = true)
-        val generator: String,
+        var generator: String,
 
         @JacksonXmlProperty(isAttribute = true)
-        val copyright: String,
+        var copyright: String,
 
         @JacksonXmlProperty(isAttribute = true)
-        val attribution: String,
+        var attribution: String,
 
         @JacksonXmlProperty(isAttribute = true)
-        val license: String,
+        var license: String,
 
         @JacksonXmlProperty(isAttribute = false)
         val bounds: Bounds,
 
         @JacksonXmlElementWrapper(useWrapping = false)
-        val node: Sequence<Node>,
+        val node: List<Node>?,
 
         @JacksonXmlElementWrapper(useWrapping = false)
-        val way: Sequence<Way>,
+        val way: List<Way>?,
 
         @JacksonXmlElementWrapper(useWrapping = false)
-        val relation: Sequence<Relation>
+        val relation: List<Relation>?
 )
 
 @NoArg
-data class Bounds (
+data class Bounds(
 
         @JacksonXmlProperty(isAttribute = true)
-        val minlat: String,
+        val minlat: Double,
 
         @JacksonXmlProperty(isAttribute = true)
-        val minlon: String,
+        val minlon: Double,
 
         @JacksonXmlProperty(isAttribute = true)
-        val maxlat: String,
+        val maxlat: Double,
 
         @JacksonXmlProperty(isAttribute = true)
-        val maxlon: String
+        val maxlon: Double
 )
 
 @NoArg
 data class Node(
-
-        @JacksonXmlProperty(isAttribute = true)
-        val lat: String,
-
-        @JacksonXmlProperty(isAttribute = true)
-        val lon: String,
 
         @JacksonXmlProperty(isAttribute = true)
         override val id: Long,
@@ -87,11 +79,17 @@ data class Node(
         override val user: String,
 
         @JacksonXmlProperty(isAttribute = true)
-        override val uid: String,
+        override val uid: Long,
+
+        @JacksonXmlProperty(isAttribute = true)
+        val lat: Double,
+
+        @JacksonXmlProperty(isAttribute = true)
+        val lon: Double,
 
         @JacksonXmlElementWrapper(useWrapping = false)
-        override val tag: HashMap<String, String>
-): OsmEntity
+        override val tag: List<Tag>?
+) : OsmEntity
 
 @NoArg
 data class Relation(
@@ -115,33 +113,30 @@ data class Relation(
         override val user: String,
 
         @JacksonXmlProperty(isAttribute = true)
-        override val uid: String,
+        override val uid: Long,
 
         @JacksonXmlElementWrapper(useWrapping = false)
-        override val tag: HashMap<String, String>,
+        val member: List<Member>?,
 
         @JacksonXmlElementWrapper(useWrapping = false)
-        val member: Sequence<Member>
-): OsmEntity
+        override val tag: List<Tag>?
+) : OsmEntity
 
 @NoArg
-data class Member(
+class Member(
 
         @JacksonXmlProperty(isAttribute = true)
         val type: String,
 
         @JacksonXmlProperty(isAttribute = true)
-        val role: String,
+        override val ref: Long,
 
         @JacksonXmlProperty(isAttribute = true)
-        override val ref: Long
-): Ref
+        val role: String
+) : Ref
 
 @NoArg
 data class Way(
-
-        @JacksonXmlElementWrapper(useWrapping = false)
-        val nd: Sequence<NodeRef>,
 
         @JacksonXmlProperty(isAttribute = true)
         override val id: Long,
@@ -162,20 +157,30 @@ data class Way(
         override val user: String,
 
         @JacksonXmlProperty(isAttribute = true)
-        override val uid: String,
+        override val uid: Long,
 
         @JacksonXmlElementWrapper(useWrapping = false)
-        @JsonIgnore
-        override val tag: HashMap<String, String> = hashMapOf()
-): OsmEntity
+        val nd: List<NodeRef>? = listOf(),
+
+        @JacksonXmlElementWrapper(useWrapping = false)
+        override val tag: List<Tag>?
+) : OsmEntity
 
 @NoArg
-data class NodeRef(
+class NodeRef(
 
         @JacksonXmlProperty(isAttribute = true)
         override val ref: Long
 ) : Ref
 
+@NoArg
+data class Tag(
+        @JacksonXmlProperty(isAttribute = true)
+        val k: String,
+
+        @JacksonXmlProperty(isAttribute = true)
+        val v: String
+)
 
 interface OsmEntity {
     val id: Long
@@ -184,8 +189,8 @@ interface OsmEntity {
     val changeset: Long
     val timestamp: String
     val user: String
-    val uid: String
-        val tag: HashMap<String, String>
+    val uid: Long
+    val tag: List<Tag>?
 }
 
 interface Ref {
