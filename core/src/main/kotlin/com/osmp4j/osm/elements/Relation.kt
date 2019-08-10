@@ -1,8 +1,10 @@
-package com.osmp4j.osm
+package com.osmp4j.osm.elements
 
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlElementWrapper
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty
 import com.osmp4j.noarg.NoArg
+import com.osmp4j.osm.elements.attributes.Member
+import com.osmp4j.osm.elements.attributes.Tag
 
 @NoArg
 data class Relation(
@@ -33,4 +35,4 @@ data class Relation(
 
         @JacksonXmlElementWrapper(useWrapping = false)
         override val tag: List<Tag>?
-) : OsmEntity
+) : Element

@@ -1,9 +1,12 @@
-package com.osmp4j.osm
+package com.osmp4j.osm.file
 
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlElementWrapper
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement
 import com.osmp4j.noarg.NoArg
+import com.osmp4j.osm.elements.Node
+import com.osmp4j.osm.elements.Relation
+import com.osmp4j.osm.elements.Way
 
 @NoArg
 @JacksonXmlRootElement(localName = "osm")

@@ -1,6 +1,8 @@
-package com.osmp4j.osm
+package com.osmp4j.osm.elements
 
-interface OsmEntity {
+import com.osmp4j.osm.elements.attributes.Tag
+
+interface Element {
     val id: Long
     val visible: Boolean
     val version: Int
