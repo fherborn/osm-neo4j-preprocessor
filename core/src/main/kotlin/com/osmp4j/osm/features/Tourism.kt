@@ -1,0 +1,26 @@
+package com.osmp4j.osm.features
+
+object Tourism : Feature<Tourism>("tourism") {
+    val ALPINE_HUT = value("alpine_hut")
+    val APARTMENT = value("apartment")
+    val AQUARIUM = value("aquarium")
+    val ARTWORK = value("artwork")
+    val ATTRACTION = value("attraction")
+    val CAMP_PITCH = value("camp_pitch")
+    val CAMP_SITE = value("camp_site")
+    val CARAVAN_SITE = value("caravan_site")
+    val CHALET = value("chalet")
+    val GALLERY = value("gallery")
+    val GUEST_HOUSE = value("guest_house")
+    val HOSTEL = value("hostel")
+    val HOTEL = value("hotel")
+    val INFORMATION = value("information")
+    val MOTEL = value("motel")
+    val MUSEUM = value("museum")
+    val PICNIC_SITE = value("picnic_site")
+    val THEME_PARK = value("theme_park")
+    val VIEWPOINT = value("viewpoint")
+    val WILDERNESS_HUT = value("wilderness_hut")
+    val ZOO = value("zoo")
+    val YES = value("yes")
+}
