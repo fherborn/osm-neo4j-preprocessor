@@ -12,7 +12,7 @@ import com.osmp4j.messages.PreparationRequest
 import com.osmp4j.messages.PreparationResponse
 import com.osmp4j.models.BoundingBox
 import com.osmp4j.mq.QueueNames
-import com.osmp4j.osm.file.OsmRoot
+import com.osmp4j.osm.file.OSMRoot
 import org.slf4j.LoggerFactory
 import org.springframework.amqp.rabbit.annotation.RabbitListener
 import org.springframework.amqp.rabbit.core.RabbitTemplate
@@ -75,8 +75,8 @@ class PreparationService @Autowired constructor(
         mapper.registerModule(ParameterNamesModule())
         mapper.registerModule(KotlinModule())
 
-        val osmFile = mapper.readValue<OsmRoot>(rawFile.inputStream())
-        logger.debug("Node count: ${osmFile.node?.count()}")
+        val osmFile = mapper.readValue<OSMRoot>(rawFile.inputStream())
+        logger.debug("OSMNode count: ${osmFile.node?.count()}")
 
         val cities = osmFile.node
                 ?.asSequence()

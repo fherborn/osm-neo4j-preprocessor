@@ -1,13 +1,13 @@
 package com.osmp4j.osm.extensions
 
-import com.osmp4j.osm.elements.attributes.Tag
-import com.osmp4j.osm.features.Feature
-import com.osmp4j.osm.features.Value
+import com.osmp4j.osm.elements.attributes.OSMTag
+import com.osmp4j.osm.features.OSMFeature
+import com.osmp4j.osm.features.OSMValue
 
-fun <X> Sequence<Tag>.contains(feature: Feature<X>) = any { it.k == feature.key }
-fun <X> Sequence<Tag>.contains(feature: Feature<X>, value: Value<X>) = any { it.k == feature.key && it.v == value.name }
-fun <X> Sequence<Tag>.contains(value: Value<X>) = any { it.v == value.name }
+fun <X> Sequence<OSMTag>.contains(feature: OSMFeature<X>) = any { it.k == feature.key }
+fun <X> Sequence<OSMTag>.contains(feature: OSMFeature<X>, value: OSMValue<X>) = any { it.k == feature.key && it.v == value.name }
+fun <X> Sequence<OSMTag>.contains(value: OSMValue<X>) = any { it.v == value.name }
 
-fun <X> Sequence<Tag>.filter(feature: Feature<X>) = filter { it.k == feature.key }
-fun <X> Sequence<Tag>.filter(feature: Feature<X>, value: Value<X>) = filter { it.k == feature.key && it.v == value.name }
-fun <X> Sequence<Tag>.filter(value: Value<X>) = filter { it.v == value.name }
+fun <X> Sequence<OSMTag>.filter(feature: OSMFeature<X>) = filter { it.k == feature.key }
+fun <X> Sequence<OSMTag>.filter(feature: OSMFeature<X>, value: OSMValue<X>) = filter { it.k == feature.key && it.v == value.name }
+fun <X> Sequence<OSMTag>.filter(value: OSMValue<X>) = filter { it.v == value.name }
