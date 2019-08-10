@@ -23,6 +23,7 @@ apply plugin: 'io.spring.dependency-management'
 apply plugin: 'docker'
 apply plugin: 'kotlin'
 apply plugin: 'kotlin-spring'
+apply plugin: 'kotlin-noarg'
 
 group = 'com.osmp4j'
 version = '0.0.1-SNAPSHOT'
@@ -45,6 +46,8 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     implementation("com.osmp4j:core:0.0.1")
+    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.10.0.pr1'
+    implementation group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-xml', version: '2.10.0.pr1'
     implementation group: 'com.fasterxml.jackson.module', name: 'jackson-module-kotlin', version: '2.10.0.pr1'
     testImplementation('org.junit.jupiter:junit-jupiter-api:5.5.1')
 }
@@ -73,4 +76,8 @@ compileTestKotlin {
         freeCompilerArgs = ["-Xjsr305=strict"]
         jvmTarget = "1.8"
     }
+}
+
+noArg {
+    annotation("com.osmp4j.agent.noarg.NoArg")
 }
