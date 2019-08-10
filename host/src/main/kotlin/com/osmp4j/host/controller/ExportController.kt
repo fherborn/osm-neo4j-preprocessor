@@ -1,8 +1,8 @@
 package com.osmp4j.host.controller
 
-import com.osmp4j.host.Task
+import com.osmp4j.host.models.Task
 import com.osmp4j.host.services.ExportService
-import com.osmp4j.mq.BoundingBox
+import com.osmp4j.models.BoundingBox
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Controller
 import org.springframework.ui.Model

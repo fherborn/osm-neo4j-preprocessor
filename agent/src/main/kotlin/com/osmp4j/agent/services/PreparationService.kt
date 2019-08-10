@@ -4,15 +4,15 @@ import com.fasterxml.jackson.dataformat.xml.XmlMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.fasterxml.jackson.module.paramnames.ParameterNamesModule
-import com.osmp4j.agent.models.OsmRoot
 import com.osmp4j.ftp.FTPService
 import com.osmp4j.http.*
 import com.osmp4j.messages.BoundingBoxToLargeError
 import com.osmp4j.messages.PreparationError
 import com.osmp4j.messages.PreparationRequest
 import com.osmp4j.messages.PreparationResponse
-import com.osmp4j.mq.BoundingBox
+import com.osmp4j.models.BoundingBox
 import com.osmp4j.mq.QueueNames
+import com.osmp4j.osm.OsmRoot
 import org.slf4j.LoggerFactory
 import org.springframework.amqp.rabbit.annotation.RabbitListener
 import org.springframework.amqp.rabbit.core.RabbitTemplate

@@ -1,13 +1,9 @@
-package com.osmp4j.agent.models
+package com.osmp4j.osm
 
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlElementWrapper
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement
-import com.osmp4j.agent.noarg.NoArg
-
-data class OsmFile(
-        val osm: OsmRoot
-)
+import com.osmp4j.noarg.NoArg
 
 @NoArg
 @JacksonXmlRootElement(localName = "osm")

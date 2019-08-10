@@ -1,29 +1,24 @@
-package com.osmp4j.mq
+package com.osmp4j.models
 
-import com.osmp4j.geo.distanceInKm
 import com.osmp4j.geo.distanceTo
-import com.osmp4j.geo.toRadiant
 import java.io.Serializable
 import kotlin.math.ceil
 import kotlin.math.min
 
-data class BoundingBox private constructor(val fromLat: Double, val fromLon: Double, val toLat: Double, val toLon: Double) : Serializable {
+data class BoundingBox internal constructor(val fromLat: Double, val fromLon: Double, val toLat: Double, val toLon: Double) : Serializable {
 
-    fun widthDegree() = fromLon distanceTo toLon
-    fun heightDegree() = fromLat distanceTo toLat
-    fun widthRadiant() = widthDegree().toRadiant()
-    fun heightRadiant() = heightDegree().toRadiant()
-    fun minWidthInKm() = min(hDistance(fromLon), hDistance(toLon))
-    fun minHeightInKm() = min(vDistance(fromLat), vDistance(toLat))
+    fun width() = fromLon distanceTo toLon
+
+    fun height() = fromLat distanceTo toLat
 
 
     fun split(tileWidth: Double, tileHeight: Double = tileWidth): List<BoundingBox> {
 
-        val tileCountHorizontal = ceil(widthDegree() / tileWidth).toInt()
-        val fixedTileWidth = widthDegree() / tileCountHorizontal
+        val tileCountHorizontal = ceil(width() / tileWidth).toInt()
+        val fixedTileWidth = width() / tileCountHorizontal
 
-        val tileCountVertical = ceil(heightDegree() / tileHeight).toInt()
-        val fixedTileHeight = heightDegree() / tileCountVertical
+        val tileCountVertical = ceil(height() / tileHeight).toInt()
+        val fixedTileHeight = height() / tileCountVertical
 
         val startLat = min(fromLat, toLat)
         val startLon = min(fromLon, toLon)
@@ -41,9 +36,6 @@ data class BoundingBox private constructor(val fromLat: Double, val fromLon: Dou
                 startLat + (latIndex + 1) * fixedTileWidth, startLon + (lonIndex + 1) * fixedTileHeight
         )
     }
-
-    private fun hDistance(lon: Double) = distanceInKm(fromLat, lon, toLat, lon)
-    private fun vDistance(lat: Double) = distanceInKm(lat, fromLon, lat, toLon)
 
     companion object {
 

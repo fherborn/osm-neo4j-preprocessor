@@ -1,7 +1,7 @@
 package com.osmp4j.messages
 
+import com.osmp4j.models.BoundingBox
 import com.osmp4j.models.Identifiable
-import com.osmp4j.mq.BoundingBox
 import java.io.Serializable
 import java.util.*
 

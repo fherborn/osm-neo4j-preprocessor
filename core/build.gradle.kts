@@ -5,6 +5,7 @@ val springBootVersion = "2.1.7.RELEASE"
 val jupiterVersion = "5.5.1"
 val commonsVersion = "3.6"
 val httpClientVersion = "4.5.9"
+val jacksonVersion = "2.10.0.pr1"
 
 plugins {
     kotlin("jvm") version "1.3.41"
@@ -13,7 +14,7 @@ plugins {
     kotlin("plugin.spring") version "1.3.41"
     id("org.springframework.boot") version "2.1.7.RELEASE"
     id("io.spring.dependency-management") version "1.0.8.RELEASE"
-    `maven-publish`
+    id("maven-publish")
 }
 
 group = "com.osmp4j"
@@ -33,8 +34,10 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter:$springBootVersion")
     implementation("org.springframework.boot:spring-boot-starter-amqp:$springBootVersion")
     implementation("org.apache.httpcomponents:httpclient:$httpClientVersion")
+    implementation("com.fasterxml.jackson.core:jackson-core:$jacksonVersion")
+    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-xml:$jacksonVersion")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:$jacksonVersion")
     testImplementation("org.junit.jupiter:junit-jupiter-api:$jupiterVersion")
-
 }
 
 configure<DependencyManagementExtension> {
@@ -47,11 +50,6 @@ tasks.getByName<Jar>("jar") {
     enabled = true
 }
 
-//tasks.getByName<BootJar>("bootJar") {
-//    enabled = true
-//    mainClassName = "com.osmp4j.CoreApplication"
-//}
-
 java {
     sourceCompatibility = JavaVersion.VERSION_1_8
     targetCompatibility = JavaVersion.VERSION_1_8
@@ -63,4 +61,8 @@ kotlin {
 tasks.withType<KotlinCompile> {
     kotlinOptions.freeCompilerArgs = listOf("-Xjsr305=strict")
     kotlinOptions.jvmTarget = "1.8"
+}
+
+noArg {
+    annotation("com.osmp4j.noarg.NoArg")
 }

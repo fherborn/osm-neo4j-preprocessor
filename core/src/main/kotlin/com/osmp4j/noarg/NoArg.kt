@@ -1,4 +1,4 @@
-package com.osmp4j.agent.noarg
+package com.osmp4j.noarg
 
 
 @Target(AnnotationTarget.CLASS)
