@@ -4,14 +4,16 @@ import com.fasterxml.jackson.dataformat.xml.XmlMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.fasterxml.jackson.module.paramnames.ParameterNamesModule
-import com.osmp4j.agent.models.OsmRoot
+import com.osmp4j.data.osm.extensions.mapDistinct
+import com.osmp4j.data.osm.features.OSMHighway
+import com.osmp4j.data.osm.file.OSMRoot
 import com.osmp4j.ftp.FTPService
 import com.osmp4j.http.*
 import com.osmp4j.messages.BoundingBoxToLargeError
 import com.osmp4j.messages.PreparationError
 import com.osmp4j.messages.PreparationRequest
 import com.osmp4j.messages.PreparationResponse
-import com.osmp4j.mq.BoundingBox
+import com.osmp4j.models.BoundingBox
 import com.osmp4j.mq.QueueNames
 import org.slf4j.LoggerFactory
 import org.springframework.amqp.rabbit.annotation.RabbitListener
@@ -75,17 +77,11 @@ class PreparationService @Autowired constructor(
         mapper.registerModule(ParameterNamesModule())
         mapper.registerModule(KotlinModule())
 
-        val osmFile = mapper.readValue<OsmRoot>(rawFile.inputStream())
-        logger.debug("Node count: ${osmFile.node?.count()}")
+        val osmFile = mapper.readValue<OSMRoot>(rawFile.inputStream())
+        logger.debug("OSMNode count: ${osmFile.node?.count()}")
 
         val cities = osmFile.node
-                ?.asSequence()
-                ?.mapNotNull { it.tag }
-                ?.flatten()
-                ?.filter { it.k == "addr:city" }
-                ?.map { it.v }
-                ?.distinct()
-                ?.toList()
+                ?.mapDistinct(OSMHighway.ADDR_CITY)
 
         logger.debug("Cities: $cities")
 

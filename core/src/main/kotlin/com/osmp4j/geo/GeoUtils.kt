@@ -10,16 +10,24 @@ fun Double.toDegree() = this * 180 / PI
 
 infix fun Double.distanceTo(to: Double) = abs(to - this)
 
-fun distanceInKm(fromLatDegree: Double, fromLonDegree: Double, toLatDegree: Double, toLonDegree: Double): Double {
+data class Point(val lat: Double, val lon: Double) {
+    infix fun distanceTo(to: Point): Double {
 
-    val distanceLatRadiant = (toLatDegree - fromLatDegree).toRadiant()
-    val distanceLonRadiant = (toLonDegree - fromLonDegree).toRadiant()
+        val distanceLatRadiant = (to.lat - lat).toRadiant()
+        val distanceLonRadiant = (to.lon - lon).toRadiant()
 
-    val latFromRadiant = fromLatDegree.toRadiant()
-    val latToRadiant = toLatDegree.toRadiant()
+        val latFromRadiant = lat.toRadiant()
+        val latToRadiant = to.lat.toRadiant()
 
-    val a = sin(distanceLatRadiant / 2) * sin(distanceLatRadiant / 2) + sin(distanceLonRadiant / 2) * sin(distanceLonRadiant / 2) * cos(latFromRadiant) * cos(latToRadiant)
-    val c = 2 * atan2(sqrt(a), sqrt(1 - a))
+        val a = sin(distanceLatRadiant / 2) *
+                sin(distanceLatRadiant / 2) +
+                sin(distanceLonRadiant / 2) *
+                sin(distanceLonRadiant / 2) *
+                cos(latFromRadiant) *
+                cos(latToRadiant)
 
-    return EARTH_RADIUS * c
+        val c = 2 * atan2(sqrt(a), sqrt(1 - a))
+
+        return EARTH_RADIUS * c
+    }
 }

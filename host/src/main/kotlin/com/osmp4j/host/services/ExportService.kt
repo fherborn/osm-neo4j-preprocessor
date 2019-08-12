@@ -3,12 +3,12 @@ package com.osmp4j.host.services
 import com.osmp4j.extensions.identityMapOf
 import com.osmp4j.extensions.pop
 import com.osmp4j.extensions.put
-import com.osmp4j.host.Task
+import com.osmp4j.host.models.Task
 import com.osmp4j.messages.BoundingBoxToLargeError
 import com.osmp4j.messages.PreparationError
 import com.osmp4j.messages.PreparationRequest
 import com.osmp4j.messages.PreparationResponse
-import com.osmp4j.mq.BoundingBox
+import com.osmp4j.models.BoundingBox
 import com.osmp4j.mq.QueueNames
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -36,7 +36,10 @@ class ExportService @Autowired constructor(private val template: RabbitTemplate)
 
     @RabbitListener(queues = [QueueNames.PREPARATION_RESPONSE])
     private fun onPreparationResponse(response: PreparationResponse) {
-        val taskId = preparationRequestsTasks.pop(response.id)
+        val taskId = preparationRequestsTasks.pop(response.id)?:let{
+            logger.taskNotFound(response.id)
+            return
+        }
 
         //TODO Start remove duplicates
 
@@ -54,7 +57,10 @@ class ExportService @Autowired constructor(private val template: RabbitTemplate)
 
     @RabbitListener(queues = [QueueNames.PREPARATION_ERROR])
     private fun onPreparationError(error: PreparationError) {
-        val taskId = preparationRequestsTasks.pop(error.id)
+        val taskId = preparationRequestsTasks.pop(error.id)?:let{
+            logger.taskNotFound(error.id)
+            return
+        }
 
         when (error) {
             is BoundingBoxToLargeError -> retryPreparation(taskId, error.boundingBox)
@@ -70,7 +76,7 @@ class ExportService @Autowired constructor(private val template: RabbitTemplate)
 
     private fun retryPreparation(taskId: UUID, box: BoundingBox) {
         logger.boxToLarge(taskId, box)
-        val boxes = box.split(box.widthDegree() / 2, box.heightDegree() / 2)
+        val boxes = box.split(box.width() / 2, box.height() / 2)
         prepare(taskId, boxes)
     }
 
@@ -88,6 +94,7 @@ class ExportService @Autowired constructor(private val template: RabbitTemplate)
     private fun Logger.preparationFinished(task: UUID) = task(task) { "Preparation finished" }
     private fun Logger.preparationStarted(task: UUID) = task(task) { "Preparation started" }
     private fun Logger.boxToLarge(task: UUID, box: BoundingBox) = task(task) { "Box $box to large, splitting started." }
+    private fun Logger.taskNotFound(requestId: UUID) = "Task for request $requestId not found! Stopping preparation!"
     private fun Logger.task(taskId: UUID, createMessage: (task: Task) -> String) = tasks[taskId]?.let {
         debug("Task: $taskId -> ${createMessage(it)}")
     }
