@@ -1,10 +1,12 @@
 package com.osmp4j.data.osm.extensions
 
 import com.osmp4j.data.osm.elements.OSMNode
+import com.osmp4j.data.osm.elements.OSMWay
 import com.osmp4j.data.osm.elements.attributes.OSMTag
 import com.osmp4j.data.osm.features.OSMAttribute
 import com.osmp4j.data.osm.features.OSMFeature
 import com.osmp4j.data.osm.features.OSMValue
+import com.osmp4j.data.osm.features.OSMWaterway
 
 
 fun <T> Collection<OSMTag>.contains(feature: OSMFeature<T>) = any { it.k == feature.name }
@@ -21,3 +23,6 @@ fun <T> Collection<OSMNode>.filter(value: OSMValue<T>) = filter { it.hasValue(va
 fun <T> Collection<OSMNode>.map(attribute: OSMAttribute<T>) = map { it.get(attribute) }.map { it?.v }
 fun <T> Collection<OSMNode>.mapNotNull(attribute: OSMAttribute<T>) = mapNotNull { it.get(attribute) }.map { it.v }
 fun <T> Collection<OSMNode>.mapDistinct(attribute: OSMAttribute<T>) = mapNotNull(attribute).distinct()
+
+fun Collection<OSMNode>.filterFeatures() = filter { it.isFeature() }
+fun Collection<OSMNode>.groupByFeatures(): Map<OSMFeature<*>?, List<OSMNode>> = groupBy { it.getFeature() }

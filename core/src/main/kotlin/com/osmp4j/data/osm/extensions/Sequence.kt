@@ -17,3 +17,6 @@ fun <T> Sequence<OSMTag>.get(attribute: OSMAttribute<T>) = find { it.k == attrib
 fun <T> Sequence<OSMNode>.filter(feature: OSMFeature<T>) = filter { it.isFeature(feature) }
 fun <T> Sequence<OSMNode>.filter(feature: OSMFeature<T>, value: OSMValue<T>) = filter { it.isFeature(feature, value) }
 fun <T> Sequence<OSMNode>.filter(value: OSMValue<T>) = filter { it.hasValue(value) }
+
+fun Sequence<OSMNode>.filterFeatures() = filter { it.isFeature() }
+fun Sequence<OSMNode>.groupByFeatures() = groupBy { it.getFeature() }

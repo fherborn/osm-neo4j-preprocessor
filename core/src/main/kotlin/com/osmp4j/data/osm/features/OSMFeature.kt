@@ -1,5 +1,7 @@
 package com.osmp4j.data.osm.features
 
+import com.osmp4j.data.osm.file.OSMRoot
+
 class OSMValue<T>(val name: String)
 class OSMAttribute<T>(val name: String)
 
@@ -30,3 +32,38 @@ open class OSMFeature<T>(val name: String) {
     protected fun value(name: String) = OSMValue<T>(name)
     protected fun attr(name: String) = OSMAttribute<T>(name)
 }
+
+val features = listOf(
+        OSMAerialWay,
+        OSMAerialWay,
+        OSMAmenity,
+        OSMBarrier,
+        OSMBoundary,
+        OSMBuilding,
+        OSMBusway,
+        OSMCraft,
+        OSMCycleway,
+        OSMEmergency,
+        OSMGeological,
+        OSMHighway,
+        OSMHistoric,
+        OSMLanduse,
+        OSMLeisure,
+        OSMLine,
+        OSMManMade,
+        OSMMilitary,
+        OSMNatural,
+        OSMOffice,
+        OSMPlace,
+        OSMPower,
+        OSMPublicTransport,
+        OSMRailway,
+        OSMRoute,
+        OSMService,
+        OSMShop,
+        OSMSidewalk,
+        OSMSport,
+        OSMTelecom,
+        OSMTourism,
+        OSMWaterway
+)

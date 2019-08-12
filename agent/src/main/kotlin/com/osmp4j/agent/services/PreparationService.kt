@@ -4,10 +4,16 @@ import com.fasterxml.jackson.dataformat.xml.XmlMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.fasterxml.jackson.module.paramnames.ParameterNamesModule
+import com.osmp4j.data.osm.elements.OSMNode
+import com.osmp4j.data.osm.elements.OSMWay
+import com.osmp4j.data.osm.extensions.distance
+import com.osmp4j.data.osm.extensions.filterFeatures
+import com.osmp4j.data.osm.extensions.groupByFeatures
 import com.osmp4j.data.osm.extensions.mapDistinct
 import com.osmp4j.data.osm.features.OSMHighway
 import com.osmp4j.data.osm.file.OSMRoot
 import com.osmp4j.ftp.FTPService
+import com.osmp4j.geo.Point
 import com.osmp4j.http.*
 import com.osmp4j.messages.BoundingBoxToLargeError
 import com.osmp4j.messages.PreparationError
@@ -80,10 +86,31 @@ class PreparationService @Autowired constructor(
         val osmFile = mapper.readValue<OSMRoot>(rawFile.inputStream())
         logger.debug("OSMNode count: ${osmFile.node?.count()}")
 
-        val cities = osmFile.node
-                ?.mapDistinct(OSMHighway.ADDR_CITY)
+        val features  = osmFile.node
+                ?.asSequence()
+                ?.filterFeatures()
+                ?:sequenceOf()
 
-        logger.debug("Cities: $cities")
+        val startEndNodes = osmFile.way
+                ?.asSequence()
+                ?.mapNotNull { it.nd }
+                ?.flatMap { sequenceOf(it.first(), it.last()) }
+                ?.map { it.ref }
+                ?.distinct()
+                ?.mapNotNull { id -> osmFile.node?.find { it.id == id } }
+                ?:sequenceOf()
+
+
+        val allNodes = (features + startEndNodes)
+                .distinct()
+
+        val shrinkedWays = osmFile.way
+                ?.asSequence()
+                ?.
+                ?: sequenceOf()
+
+
+        logger.debug("Cities: $allNodes")
 
 
 //        val preprocessedFile = File("${UUID.randomUUID()}.xml")
@@ -93,6 +120,24 @@ class PreparationService @Autowired constructor(
         logger.debug("Deleting local file")
         publish(rawFile, request)
         rawFile.delete()
+    }
+
+    private fun OSMWay.shrink(nodes: Sequence<OSMNode>, allNodes: Sequence<OSMNode>): Sequence<OSMWay> {
+
+        val wayNodes = nd
+                ?.asSequence()
+                ?.map { ref -> allNodes.first { it.id == ref.ref } }
+                ?:return sequenceOf()
+
+        val wayParts = (wayNodes zip wayNodes.drop(1))
+                .map { it to it.distance() }
+        
+        //TODO shrink ways
+
+        var lastDistance = 0.0
+        var lastNode = wayNodes.first()
+        val ways = mutableListOf<OSMWay>()
+        val subdistances =
     }
 
     private fun boxToLargeErrorFound(boundingBox: BoundingBox, request: PreparationRequest) {
