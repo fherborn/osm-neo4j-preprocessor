@@ -1,9 +1,9 @@
 package com.osmp4j.data.osm.features
 
 class OSMValue<T>(val name: String)
-class OSMAttribute<T>(key: String) : OSMFeature<T>(key)
+class OSMAttribute<T>(val name: String)
 
-open class OSMFeature<T>(val key: String) {
+open class OSMFeature<T>(val name: String) {
 
     //TODO Annotation, Name, Properties, References, Restrictions
 

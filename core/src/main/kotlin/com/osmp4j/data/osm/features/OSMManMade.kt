@@ -1,6 +1,6 @@
 package com.osmp4j.data.osm.features
 
-object OSMMan_Made : OSMFeature<OSMMan_Made>("man_made") {
+object OSMManMade : OSMFeature<OSMManMade>("man_made") {
     val ADIT = value("adit")
     val BEACON = value("beacon")
     val BREAKWATER = value("breakwater")

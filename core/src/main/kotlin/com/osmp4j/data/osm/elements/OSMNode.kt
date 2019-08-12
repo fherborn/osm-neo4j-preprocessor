@@ -2,8 +2,8 @@ package com.osmp4j.data.osm.elements
 
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlElementWrapper
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty
-import com.osmp4j.noarg.NoArg
 import com.osmp4j.data.osm.elements.attributes.OSMTag
+import com.osmp4j.noarg.NoArg
 
 @NoArg
 data class OSMNode(
