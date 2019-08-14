@@ -17,4 +17,4 @@ fun <T> OSMNode.get(attribute: OSMAttribute<T>) = tag?.get(attribute)
 fun OSMNode.isFeature() = tag != null
 fun OSMNode.getFeature() = features.find { isFeature(it) }
 
-fun Pair<OSMNode, OSMNode>.distance() = Point(first.lat, first.lon) distanceTo Point(second.lat, second.lon)
+infix fun OSMNode.distanceTo(other: OSMNode) = Point(lat, lon) distanceTo Point(other.lat, other.lon)

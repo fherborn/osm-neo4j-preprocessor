@@ -4,9 +4,12 @@ import com.fasterxml.jackson.dataformat.xml.XmlMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.fasterxml.jackson.module.paramnames.ParameterNamesModule
+import com.osmp4j.data.CSVService
+import com.osmp4j.data.Node
 import com.osmp4j.data.osm.elements.OSMNode
 import com.osmp4j.data.osm.elements.OSMWay
-import com.osmp4j.data.osm.extensions.filterFeatures
+import com.osmp4j.data.osm.extensions.filter
+import com.osmp4j.data.osm.features.OSMHighway
 import com.osmp4j.data.osm.file.OSMRoot
 import com.osmp4j.ftp.FTPService
 import com.osmp4j.http.*
@@ -72,16 +75,22 @@ class PreparationService @Autowired constructor(
         mapper.registerModule(KotlinModule())
 
         val osmFile = mapper.readValue<OSMRoot>(rawFile.inputStream())
-        logger.debug("OSMNode count: ${osmFile.node?.count()}")
 
-        val features = osmFile.node?.getFeatures() ?: sequenceOf()
-        val startEndNodes = osmFile.way?.getStartAndEndNodes(osmFile.node ?: listOf()) ?: sequenceOf()
-        val allNodes = (features + startEndNodes).distinct()
+        val allNodes = osmFile.node?.asSequence() ?: sequenceOf()
+        val allWays = osmFile.way?.asSequence() ?: sequenceOf()
 
-        val reducedWays = osmFile.way?.reduceWays(allNodes) ?: sequenceOf()
+        val features = allNodes.filter(OSMHighway)
+        val startEndNodes = allWays.getStartAndEndNodes(allNodes)
+        val reducedNodes = (features + startEndNodes).distinct()
 
+        //val reducedWays = allWays.reduceWays(reducedNodes, allNodes)
+        val csvService = CSVService()
+        val csvFileName = "CSV-${rawFile.name}.csv"
+        val nodesToWrite = reducedNodes.map { Node(it.id, it.lat, it.lon) }
+        csvService.write(csvFileName, nodesToWrite, Node)
+        val file = File(csvFileName)
 
-        logger.debug("Cities: $allNodes")
+        logger.debug("Nodes: ${reducedNodes.count()}")
 
 
 //        val preprocessedFile = File("${UUID.randomUUID()}.xml")
@@ -90,21 +99,20 @@ class PreparationService @Autowired constructor(
 
         logger.debug("Deleting local file")
         publish(rawFile, request)
+        publish(file, request)
         rawFile.delete()
     }
 
-    private fun List<OSMWay>.getStartAndEndNodes(allNodes: List<OSMNode>) = asSequence()
-            .mapNotNull { it.nd }
+    private fun Sequence<OSMWay>.getStartAndEndNodes(allNodes: Sequence<OSMNode>) = mapNotNull { it.nd }
             .flatMap { sequenceOf(it.first(), it.last()) }
             .map { it.ref }
             .distinct()
-            .mapNotNull { id -> allNodes.find { it.id == id } }
+            .mapNotNull { ref -> allNodes.find { it.id == ref } }
 
-    private fun List<OSMNode>.getFeatures() = asSequence().filterFeatures()
 
-    private fun List<OSMWay>.reduceWays(nodes: Sequence<OSMNode>) = asSequence().flatMap { it.reduce(nodes) }
+    private fun Sequence<OSMWay>.reduceWays(reducedNodes: Sequence<OSMNode>, allNodes: Sequence<OSMNode>) = asSequence().flatMap { it.reduce(reducedNodes, allNodes) }
 
-    private fun OSMWay.reduce(nodes: Sequence<OSMNode>): Sequence<OSMWay> {
+    private fun OSMWay.reduce(reducedNodes: Sequence<OSMNode>, allNodes: Sequence<OSMNode>): Sequence<OSMWay> {
 //
 //        val wayNodes = nd
 //                ?.asSequence()

@@ -1,7 +1,5 @@
 package com.osmp4j.data.osm.features
 
-import com.osmp4j.data.osm.file.OSMRoot
-
 class OSMValue<T>(val name: String)
 class OSMAttribute<T>(val name: String)
 
@@ -34,7 +32,6 @@ open class OSMFeature<T>(val name: String) {
 }
 
 val features = listOf(
-        OSMAerialWay,
         OSMAerialWay,
         OSMAmenity,
         OSMBarrier,

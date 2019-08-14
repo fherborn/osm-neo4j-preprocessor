@@ -18,5 +18,10 @@ fun <T> Sequence<OSMNode>.filter(feature: OSMFeature<T>) = filter { it.isFeature
 fun <T> Sequence<OSMNode>.filter(feature: OSMFeature<T>, value: OSMValue<T>) = filter { it.isFeature(feature, value) }
 fun <T> Sequence<OSMNode>.filter(value: OSMValue<T>) = filter { it.hasValue(value) }
 
+
+fun <T> Sequence<OSMNode>.map(attribute: OSMAttribute<T>) = map { it.get(attribute) }.map { it?.v }
+fun <T> Sequence<OSMNode>.mapNotNull(attribute: OSMAttribute<T>) = mapNotNull { it.get(attribute) }.map { it.v }
+fun <T> Sequence<OSMNode>.mapDistinct(attribute: OSMAttribute<T>) = mapNotNull(attribute).distinct()
+
 fun Sequence<OSMNode>.filterFeatures() = filter { it.isFeature() }
 fun Sequence<OSMNode>.groupByFeatures() = groupBy { it.getFeature() }
