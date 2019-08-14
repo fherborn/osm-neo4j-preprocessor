@@ -6,14 +6,9 @@ import com.fasterxml.jackson.module.kotlin.readValue
 import com.fasterxml.jackson.module.paramnames.ParameterNamesModule
 import com.osmp4j.data.osm.elements.OSMNode
 import com.osmp4j.data.osm.elements.OSMWay
-import com.osmp4j.data.osm.extensions.distance
 import com.osmp4j.data.osm.extensions.filterFeatures
-import com.osmp4j.data.osm.extensions.groupByFeatures
-import com.osmp4j.data.osm.extensions.mapDistinct
-import com.osmp4j.data.osm.features.OSMHighway
 import com.osmp4j.data.osm.file.OSMRoot
 import com.osmp4j.ftp.FTPService
-import com.osmp4j.geo.Point
 import com.osmp4j.http.*
 import com.osmp4j.messages.BoundingBoxToLargeError
 import com.osmp4j.messages.PreparationError
@@ -28,13 +23,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import java.io.File
 import java.util.*
-
-fun File.readFirstLine(): String = bufferedReader().use { it.readLine() }
-
-private const val BOX_TO_LARGE_ERROR_START = "You requested too many nodes"
-private const val VALID_DATA_START = "You requested too many nodes"
-private const val DOWNLOAD_LIMIT_ERROR_START = "<?xml "
-
 
 @Service
 class PreparationService @Autowired constructor(
@@ -86,28 +74,11 @@ class PreparationService @Autowired constructor(
         val osmFile = mapper.readValue<OSMRoot>(rawFile.inputStream())
         logger.debug("OSMNode count: ${osmFile.node?.count()}")
 
-        val features  = osmFile.node
-                ?.asSequence()
-                ?.filterFeatures()
-                ?:sequenceOf()
+        val features = osmFile.node?.getFeatures() ?: sequenceOf()
+        val startEndNodes = osmFile.way?.getStartAndEndNodes(osmFile.node ?: listOf()) ?: sequenceOf()
+        val allNodes = (features + startEndNodes).distinct()
 
-        val startEndNodes = osmFile.way
-                ?.asSequence()
-                ?.mapNotNull { it.nd }
-                ?.flatMap { sequenceOf(it.first(), it.last()) }
-                ?.map { it.ref }
-                ?.distinct()
-                ?.mapNotNull { id -> osmFile.node?.find { it.id == id } }
-                ?:sequenceOf()
-
-
-        val allNodes = (features + startEndNodes)
-                .distinct()
-
-        val shrinkedWays = osmFile.way
-                ?.asSequence()
-                ?.
-                ?: sequenceOf()
+        val reducedWays = osmFile.way?.reduceWays(allNodes) ?: sequenceOf()
 
 
         logger.debug("Cities: $allNodes")
@@ -122,22 +93,33 @@ class PreparationService @Autowired constructor(
         rawFile.delete()
     }
 
-    private fun OSMWay.shrink(nodes: Sequence<OSMNode>, allNodes: Sequence<OSMNode>): Sequence<OSMWay> {
+    private fun List<OSMWay>.getStartAndEndNodes(allNodes: List<OSMNode>) = asSequence()
+            .mapNotNull { it.nd }
+            .flatMap { sequenceOf(it.first(), it.last()) }
+            .map { it.ref }
+            .distinct()
+            .mapNotNull { id -> allNodes.find { it.id == id } }
 
-        val wayNodes = nd
-                ?.asSequence()
-                ?.map { ref -> allNodes.first { it.id == ref.ref } }
-                ?:return sequenceOf()
+    private fun List<OSMNode>.getFeatures() = asSequence().filterFeatures()
 
-        val wayParts = (wayNodes zip wayNodes.drop(1))
-                .map { it to it.distance() }
-        
-        //TODO shrink ways
+    private fun List<OSMWay>.reduceWays(nodes: Sequence<OSMNode>) = asSequence().flatMap { it.reduce(nodes) }
 
-        var lastDistance = 0.0
-        var lastNode = wayNodes.first()
-        val ways = mutableListOf<OSMWay>()
-        val subdistances =
+    private fun OSMWay.reduce(nodes: Sequence<OSMNode>): Sequence<OSMWay> {
+//
+//        val wayNodes = nd
+//                ?.asSequence()
+//                ?.map { ref -> allNodes.first { it.id == ref.ref } }
+//                ?:sequenceOf()
+//
+//        val wayParts = (wayNodes zip wayNodes.drop(1))
+//                .map { it to it.distance() }
+//
+//        //TODO shrink ways
+//
+//        var lastDistance = 0.0
+//        var lastNode = wayNodes.first()
+//        val ways = mutableListOf<OSMWay>()
+        TODO()
     }
 
     private fun boxToLargeErrorFound(boundingBox: BoundingBox, request: PreparationRequest) {
