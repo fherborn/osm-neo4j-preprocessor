@@ -3,6 +3,7 @@ package com.osmp4j.host.services
 import com.osmp4j.extensions.identityMapOf
 import com.osmp4j.extensions.pop
 import com.osmp4j.extensions.put
+import com.osmp4j.ftp.FTPService
 import com.osmp4j.host.models.Task
 import com.osmp4j.messages.BoundingBoxToLargeError
 import com.osmp4j.messages.PreparationError
@@ -16,17 +17,19 @@ import org.springframework.amqp.rabbit.annotation.RabbitListener
 import org.springframework.amqp.rabbit.core.RabbitTemplate
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
+import java.io.File
 import java.util.*
 
 
 @Service
-class ExportService @Autowired constructor(private val template: RabbitTemplate) {
+class ExportService @Autowired constructor(private val template: RabbitTemplate, private val ftpService: FTPService) {
 
     private val logger = LoggerFactory.getLogger(ExportService::class.java)
     private val tasks = identityMapOf<Task>()
 
     private val preparationRequestsTasks = hashMapOf<UUID, UUID>()
     private val duplicateRequestTasks = hashMapOf<UUID, UUID>()
+    private val results = hashMapOf<String, String>()
 
     fun startExport(task: Task) {
         tasks.put(task)
@@ -40,12 +43,30 @@ class ExportService @Autowired constructor(private val template: RabbitTemplate)
             logger.taskNotFound(response.id)
             return
         }
-
+        val id = UUID.randomUUID()
+        val nodesFile = "NODES-$id.csv"
+        val waysFile = "WAYS-$id.csv"
+        results[nodesFile] = response.nodesFile
+        results[waysFile] = response.waysFile
+        println("""
+            Download: 
+            Nodes -> http://192.168.0.192:8080/downloads/exports/$nodesFile
+            Ways -> http://192.168.0.192:8080/downloads/exports/$waysFile
+            """.trimIndent())
         //TODO Start remove duplicates
 
         if (isTaskPreparationFinished(taskId)) {
             finishTaskPreparation(taskId)
         }
+    }
+
+    fun getFile(fileName: String): File {
+        //TODO 404
+        val path = results[fileName] ?: throw IllegalArgumentException("File not found")
+        val file = File(fileName)
+        ftpService.download(path, file)
+        //TODO lösche file
+        return file
     }
 
     private fun finishTaskPreparation(taskId: UUID) {

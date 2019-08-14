@@ -6,6 +6,7 @@ import com.fasterxml.jackson.module.kotlin.readValue
 import com.fasterxml.jackson.module.paramnames.ParameterNamesModule
 import com.osmp4j.data.CSVService
 import com.osmp4j.data.Node
+import com.osmp4j.data.Way
 import com.osmp4j.data.osm.elements.OSMNode
 import com.osmp4j.data.osm.elements.OSMWay
 import com.osmp4j.data.osm.extensions.filter
@@ -85,10 +86,22 @@ class PreparationService @Autowired constructor(
 
         //val reducedWays = allWays.reduceWays(reducedNodes, allNodes)
         val csvService = CSVService()
-        val csvFileName = "CSV-${rawFile.name}.csv"
+        val nodesFileName = "NODES-${rawFile.name}.csv"
         val nodesToWrite = reducedNodes.map { Node(it.id, it.lat, it.lon) }
-        csvService.write(csvFileName, nodesToWrite, Node)
-        val file = File(csvFileName)
+        csvService.write(nodesFileName, nodesToWrite, Node)
+        val nodesFile = File(nodesFileName)
+
+        //TMP
+        // 1, 2, 3
+        // 4, 5, 6
+        // (1,4), (2,5), (3,6)
+        val ways = (reducedNodes zip (reducedNodes.drop(1) + reducedNodes.first())).map { Way(it.first.id, it.second.id, 200.0) }
+        val waysFileName = "WAYS-${rawFile.name}.csv"
+        csvService.write(waysFileName, ways, Way)
+        val waysFile = File(waysFileName)
+        //END TMP
+
+
 
         logger.debug("Nodes: ${reducedNodes.count()}")
 
@@ -98,8 +111,7 @@ class PreparationService @Autowired constructor(
 //        mapper.writeValue(preprocessedFile.outputStream(), osmFile)
 
         logger.debug("Deleting local file")
-        publish(rawFile, request)
-        publish(file, request)
+        publish(nodesFile, waysFile, request)
         rawFile.delete()
     }
 
@@ -144,20 +156,21 @@ class PreparationService @Autowired constructor(
     private fun getUrl(boundingBox: BoundingBox) =
             "https://www.openstreetmap.org/api/0.6/map?bbox=${boundingBox.fromLat},${boundingBox.fromLon},${boundingBox.toLat},${boundingBox.toLon}"
 
-    private fun publish(file: File, request: PreparationRequest) {
+    private fun publish(nodesFile: File, waysFile: File, request: PreparationRequest) {
 
         //TODO each agent own folder
         logger.debug("Started uploading")
-        ftpService.upload(file.name, file)
+        ftpService.upload(nodesFile.name, nodesFile)
+        ftpService.upload(waysFile.name, waysFile)
         logger.debug("Finished uploading")
 
         logger.debug("Started sending to host")
-        sendResultToHost(file.name, request)
+        sendResultToHost(nodesFile.name, waysFile.name, request)
         logger.debug("Finished sending to host")
     }
 
-    private fun sendResultToHost(fileName: String, request: PreparationRequest) {
-        template.convertAndSend(QueueNames.PREPARATION_RESPONSE, PreparationResponse(fileName, request.id))
+    private fun sendResultToHost(nodesFile: String, waysFile: String, request: PreparationRequest) {
+        template.convertAndSend(QueueNames.PREPARATION_RESPONSE, PreparationResponse(nodesFile, waysFile, request.id))
     }
 
 }

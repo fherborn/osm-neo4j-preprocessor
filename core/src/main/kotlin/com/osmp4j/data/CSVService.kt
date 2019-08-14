@@ -18,11 +18,11 @@ class CSVService {
     fun <T : CSVObject<T>> write(path: String, values: Sequence<T>, factory: CSVObjectFactory<T>) {
         val writer = FileWriter(path)
 
-        val header = factory.getHeaders().joinToString(postfix = "\n")
+        val header = factory.getHeaders().joinToString(separator = ",", postfix = "\n")
         writer.append(header)
 
         values.map { it.getTokens() }
-                .map { it.joinToString(postfix = "\n") }
+                .map { it.joinToString(separator = ",", postfix = "\n") }
                 .forEach { writer.append(it) }
 
         writer.flush()
