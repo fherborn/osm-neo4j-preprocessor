@@ -70,6 +70,8 @@ class PreparationService @Autowired constructor(
         template.convertAndSend(QueueNames.PREPARATION_ERROR, BoundingBoxToLargeError(request.box, request.task))
     }
 
+    fun Long.getKey() = toString().take(2)
+
     private fun startPreparing(rawFile: File, task: TaskInfo) {
 
         val mapper = XmlMapper()
@@ -92,14 +94,16 @@ class PreparationService @Autowired constructor(
         csvService.write(nodesFileName, nodesToWrite, Node)
         val nodesFile = File(nodesFileName)
 
+        val allNodesMap = allNodes.groupBy { it.id.getKey() }
+        val reducedNodesMap = reducedNodes.groupBy { it.id.getKey() }
 
-        val ways = allWays.reduceWays(reducedNodes, allNodes)
+        val ways = allWays.reduceWays(reducedNodesMap, allNodesMap)
         val waysFileName = "WAYS-${rawFile.name}.csv"
         csvService.write(waysFileName, ways, Way)
         val waysFile = File(waysFileName)
 
         upload(nodesFile, waysFile)
-        publish(ResultFileHolder(nodesFileName, waysFileName), task)
+        publish(ResultFileNameHolder(nodesFileName, waysFileName), task)
 
         logger.debug("Deleting local file")
         rawFile.delete()
@@ -121,38 +125,43 @@ class PreparationService @Autowired constructor(
             .mapNotNull { ref -> allNodes.find { it.id == ref } }
 
 
-    private fun Sequence<OSMWay>.reduceWays(reducedNodes: Sequence<OSMNode>, allNodes: Sequence<OSMNode>) = flatMap { it.reduce(reducedNodes, allNodes) }
+    private fun Sequence<OSMWay>.reduceWays(reducedNodes: Map<String, List<OSMNode>>, allNodes: Map<String, List<OSMNode>>) = flatMap { it.reduce(reducedNodes, allNodes) }
 
-    private fun OSMWay.reduce(reducedNodes: Sequence<OSMNode>, allNodes: Sequence<OSMNode>): Sequence<Way> {
+    private fun OSMWay.reduce(reducedNodes: Map<String, List<OSMNode>>, allNodes: Map<String, List<OSMNode>>): Sequence<Way> {
+
+        logger.debug("Start generating subways")
 
         val subWays = mutableListOf<Way>()
-
-        val wayNodes = nd.mapNotNull { ref -> allNodes.find { it.id == ref.ref } } // TODO improve performance
 
         var prevNode: OSMNode? = null
         var currentStartNode: OSMNode? = null
         var distance = 0.0
 
 
-        wayNodes.forEach { current ->
-            val isRelevant = reducedNodes.contains(current)
-            val start = currentStartNode
+        logger.debug("Generating sub ways")
 
-            if (isRelevant) {
-                if (start != null) {
-                    distance += prevNode?.distanceTo(current) ?: 0.0
-                    subWays.add(Way(id, start.id, current.id, distance))
+        nd
+                .asSequence()
+                .mapNotNull { ref -> allNodes[ref.ref.getKey()]?.find { it.id == ref.ref } }
+                .map { node -> node to (reducedNodes[node.id.getKey()]?.contains(node)?:false) }
+                .forEach { (current, isRelevant) ->
+                    val start = currentStartNode
+                    if (isRelevant) {
+                        if (start != null) {
+                            distance += prevNode?.distanceTo(current) ?: 0.0
+                            subWays.add(Way(id, start.id, current.id, distance))
+                        }
+                        distance = 0.0
+                        currentStartNode = current
+                    } else {
+                        distance += prevNode?.distanceTo(current) ?: 0.0
+                    }
+                    prevNode = current
                 }
-                distance = 0.0
-                currentStartNode = current
-            } else {
-                distance += prevNode?.distanceTo(current) ?: 0.0
-            }
 
-            prevNode = current
 
-        }
 
+        logger.debug("Prepared way from 1 to ${subWays.count()}")
         return subWays.asSequence()
     }
 
@@ -163,7 +172,7 @@ class PreparationService @Autowired constructor(
     private fun getUrl(boundingBox: BoundingBox) =
             "https://www.openstreetmap.org/api/0.6/map?bbox=${boundingBox.fromLat},${boundingBox.fromLon},${boundingBox.toLat},${boundingBox.toLon}"
 
-    private fun publish(files: ResultFileHolder, task: TaskInfo) {
+    private fun publish(files: ResultFileNameHolder, task: TaskInfo) {
         logger.debug("Started sending to host")
         template.convertAndSend(QueueNames.PREPARATION_RESPONSE, PreparationResponse(files, task))
         logger.debug("Finished sending to host")

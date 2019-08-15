@@ -78,6 +78,7 @@ class ExportService @Autowired constructor(private val template: RabbitTemplate,
         file.forEachLine { line ->
             if (index != 0 || !headerAppended) {
                 appendText(line)
+                appendText("\n")
                 headerAppended = true
                 index++
             }

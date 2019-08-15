@@ -10,11 +10,10 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.ModelAttribute
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestMapping
-import java.util.*
 import javax.validation.Valid
 
 data class InputForm(
-        var taskName: String = "Export ${UUID.randomUUID()}",
+        var taskName: String = "OSMExport",
         var email: String = "",
         var fromLat: Double = 7.0862,
         var fromLon: Double = 51.0138,

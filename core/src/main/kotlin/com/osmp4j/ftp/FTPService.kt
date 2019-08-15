@@ -17,6 +17,7 @@ class FTPService(private val ftpClientFactory: FTPClientFactory) {
         client.disconnect()
     }
 
+    fun mkDir(dir: String) = execute { makeDirectory(dir) }
     fun upload(remote: String, file: File) = execute { storeFile(remote, file) }
     fun download(remote: String, outFile: File) = execute { retrieveFile(remote, outFile) }
     fun download(remote: String, outFile: String = remote) =  File(outFile).also { execute { retrieveFile(remote, it) } }
