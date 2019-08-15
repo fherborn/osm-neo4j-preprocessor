@@ -39,6 +39,9 @@ class ExportController @Autowired constructor(private val exportService: ExportS
 
     private fun getResultTemplate(model: Model, input: InputForm): String {
         model.addAttribute(RESULT_ATTRIBUTE, input)
+
+
+
         return RESULT_TEMPLATE
     }
 

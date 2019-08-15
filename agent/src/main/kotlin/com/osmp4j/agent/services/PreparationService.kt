@@ -84,12 +84,15 @@ class PreparationService @Autowired constructor(
         val allWays = osmFile.way?.asSequence() ?: sequenceOf()
 
         val features = allNodes.filter(OSMHighway)
-        val startEndNodes = allWays.getStartAndEndNodes(allNodes)
-        val reducedNodes = (features + startEndNodes).distinct()
+
+        //REMOVE CLOSED WAYS
+        val openWays = allWays.filter { it.nd.first() != it.nd.last() }
+        val startEndNodes = openWays.getStartAndEndNodes(allNodes)
+        val reducedNodes = (features + startEndNodes).distinctBy { it.id }
 
         //val reducedWays = allWays.reduceWays(reducedNodes, allNodes)
         val csvService = CSVService()
-        val nodesFileName = "NODES-${rawFile.name}.csv"
+        val nodesFileName = "NODES-${rawFile.name}"
         val nodesToWrite = reducedNodes.map { Node(it.id, it.lat, it.lon) }
         csvService.write(nodesFileName, nodesToWrite, Node)
         val nodesFile = File(nodesFileName)
@@ -97,12 +100,12 @@ class PreparationService @Autowired constructor(
         val allNodesMap = allNodes.groupBy { it.id.getKey() }
         val reducedNodesMap = reducedNodes.groupBy { it.id.getKey() }
 
-        val ways = allWays.reduceWays(reducedNodesMap, allNodesMap)
-        val waysFileName = "WAYS-${rawFile.name}.csv"
+        val ways = openWays.reduceWays(reducedNodesMap, allNodesMap)
+        val waysFileName = "WAYS-${rawFile.name}"
         csvService.write(waysFileName, ways, Way)
         val waysFile = File(waysFileName)
 
-        upload(nodesFile, waysFile)
+        uploadFiles(nodesFile, waysFile)
         publish(ResultFileNameHolder(nodesFileName, waysFileName), task)
 
         logger.debug("Deleting local file")
@@ -111,10 +114,12 @@ class PreparationService @Autowired constructor(
         waysFile.delete()
     }
 
-    private fun upload(nodesFile: File, waysFile: File) {
+    private fun uploadFiles(nodesFile: File, waysFile: File) {
         logger.debug("Started uploading")
-        ftpService.upload(nodesFile.name, nodesFile)
-        ftpService.upload(waysFile.name, waysFile)
+        ftpService.execute {
+            upload(nodesFile.name, nodesFile)
+            upload(waysFile.name, waysFile)
+        }
         logger.debug("Finished uploading")
     }
 
@@ -140,6 +145,7 @@ class PreparationService @Autowired constructor(
 
         logger.debug("Generating sub ways")
 
+        var index = 0
         nd
                 .asSequence()
                 .mapNotNull { ref -> allNodes[ref.ref.getKey()]?.find { it.id == ref.ref } }
@@ -149,7 +155,7 @@ class PreparationService @Autowired constructor(
                     if (isRelevant) {
                         if (start != null) {
                             distance += prevNode?.distanceTo(current) ?: 0.0
-                            subWays.add(Way(id, start.id, current.id, distance))
+                            subWays.add(Way("${id}_${index++}", id, start.id, current.id, distance))
                         }
                         distance = 0.0
                         currentStartNode = current
@@ -166,7 +172,7 @@ class PreparationService @Autowired constructor(
     }
 
     private fun download(boundingBox: BoundingBox) =
-            httpService.download(getUrl(boundingBox), "${UUID.randomUUID()}.txt")
+            httpService.download(getUrl(boundingBox), "${UUID.randomUUID()}.csv")
 
 
     private fun getUrl(boundingBox: BoundingBox) =

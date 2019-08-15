@@ -21,17 +21,41 @@ class DownloadService @Autowired constructor(private val ftpService: FTPService)
         val nodeFileName = "${task.name.trim()}-nodes-${task.id}.csv"
         val waysFileName = "${task.name.trim()}-ways-${task.id}.csv"
 
-        ftpService.mkDir(DOWNLOAD_FOLDER)
-        ftpService.upload("$DOWNLOAD_FOLDER/$nodeFileName", files.nodesFile)
-        ftpService.upload("$DOWNLOAD_FOLDER/$waysFileName", files.waysFile)
+        ftpService.execute {
+            makeDirectory(DOWNLOAD_FOLDER)
+            upload("$DOWNLOAD_FOLDER/$nodeFileName", files.nodesFile)
+            upload("$DOWNLOAD_FOLDER/$waysFileName", files.waysFile)
+        }
+
+        files.nodesFile.delete()
+        files.waysFile.delete()
 
         val hostName = InetAddress.getLocalHost().hostAddress
+
+        val nodesFile = "http://192.168.0.192:8080/downloads/exports/$nodeFileName"
+        val waysFile = "http://192.168.0.192:8080/downloads/exports/$waysFileName"
 
         //TODO Send E-Mail
         //TODO Find correct ip address
         logger.debug("""Files available at:
-            nodes -> http://192.168.0.192:8080/downloads/exports/$nodeFileName
-            ways -> http://192.168.0.192:8080/downloads/exports/$waysFileName
+            nodes -> $nodesFile
+            ways -> $waysFile
+            
+            Import :
+            
+            LOAD CSV WITH HEADERS 
+            FROM "$nodesFile" AS line
+            CREATE (n:Node {id: line.id, lat: toFloat(line.lat), lon: toFloat(line.lon)});
+            
+            CREATE INDEX ON :Node(id);
+        
+            USING PERIODIC COMMIT 500
+            LOAD CSV WITH HEADERS FROM "$waysFile" AS line
+            MATCH (start:Node { id: line.start }),(end:Node { id: line.end})
+            CREATE (start)-[:Way { id: line.id, osmId: toInt(line.osmId), distance: toFloat(line.distance) }]->(end);
+            
+            CREATE INDEX ON :Way(id);
+            
         """.trimIndent())
 
     }
