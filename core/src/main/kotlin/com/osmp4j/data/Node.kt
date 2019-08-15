@@ -1,16 +1,19 @@
 package com.osmp4j.data
 
-data class Node(val id: Long, val lat: Double, val lon: Double) : CSVObject<Node> {
+import java.util.*
 
-    override fun getTokens() = listOf(id, lat, lon)
+data class Node(val osmId: Long, val lat: Double, val lon: Double, val id: UUID = UUID.randomUUID()) : CSVObject<Node> {
+
+    override fun getTokens() = listOf(id, osmId, lat, lon)
 
     companion object : CSVObjectFactory<Node> {
-        override fun getHeaders() = listOf("id", "lat", "lon")
+        override fun getHeaders() = listOf("id", "osmId", "lat", "lon")
 
         override fun fromTokens(tokens: List<String>) = Node(
-                id = tokens[0].toLong(),
-                lat = tokens[1].toDouble(),
-                lon = tokens[2].toDouble()
+                id = UUID.fromString(tokens[0]),
+                osmId = tokens[1].toLong(),
+                lat = tokens[2].toDouble(),
+                lon = tokens[3].toDouble()
         )
     }
 }

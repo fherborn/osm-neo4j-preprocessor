@@ -1,15 +1,19 @@
 package com.osmp4j.data
 
-data class Way(val start: Long, val end: Long, val distance: Double) : CSVObject<Way> {
+import java.util.*
 
-    override fun getTokens() = listOf(start, end, distance)
+data class Way(val osmId: Long, val start: Long, val end: Long, val distance: Double, val id: UUID = UUID.randomUUID()) : CSVObject<Way> {
+
+    override fun getTokens() = listOf(id, osmId, start, end, distance)
 
     companion object : CSVObjectFactory<Way> {
-        override fun getHeaders() = listOf("start", "end", "distance")
+        override fun getHeaders() = listOf("id", "osmId", "start", "end", "distance")
         override fun fromTokens(tokens: List<String>) = Way(
-                start = tokens[0].toLong(),
-                end = tokens[1].toLong(),
-                distance = tokens[2].toDouble()
+                id = UUID.fromString(tokens[0]),
+                osmId = tokens[1].toLong(),
+                start = tokens[2].toLong(),
+                end = tokens[3].toLong(),
+                distance = tokens[4].toDouble()
         )
     }
 

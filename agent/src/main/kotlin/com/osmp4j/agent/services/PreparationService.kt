@@ -95,7 +95,7 @@ class PreparationService @Autowired constructor(
         // 1, 2, 3
         // 4, 5, 6
         // (1,4), (2,5), (3,6)
-        val ways = (reducedNodes zip (reducedNodes.drop(1) + reducedNodes.first())).map { Way(it.first.id, it.second.id, 200.0) }
+        val ways = sequenceOf<Way>()//reducedNodes zip (reducedNodes.drop(1) + reducedNodes.first())).map { Way(it.id, it.first.id, it.second.id, 200.0) }
         val waysFileName = "WAYS-${rawFile.name}.csv"
         csvService.write(waysFileName, ways, Way)
         val waysFile = File(waysFileName)
