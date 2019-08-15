@@ -56,6 +56,10 @@ class DownloadService @Autowired constructor(private val ftpService: FTPService)
             
             CREATE INDEX ON :Way(id);
             
+            Examples:
+            
+            MATCH (n)-[*]->(connected) RETURN connected LIMIT 10000;
+
         """.trimIndent())
 
     }
