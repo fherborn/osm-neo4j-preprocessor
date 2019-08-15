@@ -10,7 +10,7 @@ interface Message : Serializable {
 data class PreparationRequest(val box: BoundingBox, override val task: TaskInfo) : Message
 data class DuplicateRequest(val fileName: String, override val task: TaskInfo) : Message
 
-data class PreparationResponse(val files: ResultFileHolder, override val task: TaskInfo) : Message
+data class PreparationResponse(val files: ResultFileNameHolder, override val task: TaskInfo) : Message
 data class DuplicateResponse(val fileName: String, override val task: TaskInfo) : Message
 
 sealed class PreparationError : Message
