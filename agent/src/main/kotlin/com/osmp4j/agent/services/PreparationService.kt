@@ -46,7 +46,7 @@ class PreparationService @Autowired constructor(
 
         when (val result = download(box)) {
             is DownloadError -> handleError(result, request)
-            is DownloadedFile -> startPreparing(result.file, box, task)
+            is DownloadedFile -> startPreparing(result.file, task)
         }
     }
 
@@ -70,7 +70,7 @@ class PreparationService @Autowired constructor(
         template.convertAndSend(QueueNames.PREPARATION_ERROR, BoundingBoxToLargeError(request.box, request.task))
     }
 
-    private fun startPreparing(rawFile: File, box: BoundingBox, task: TaskInfo) {
+    private fun startPreparing(rawFile: File, task: TaskInfo) {
 
         val mapper = XmlMapper()
         mapper.registerModule(ParameterNamesModule())
@@ -92,33 +92,19 @@ class PreparationService @Autowired constructor(
         csvService.write(nodesFileName, nodesToWrite, Node)
         val nodesFile = File(nodesFileName)
 
-        //TMP
-        // 1, 2, 3
-        // 4, 5, 6
-        // (1,4), (2,5), (3,6)
-        val ways = sequenceOf<Way>()//reducedNodes zip (reducedNodes.drop(1) + reducedNodes.first())).map { Way(it.id, it.first.id, it.second.id, 200.0) }
+
+        val ways = allWays.reduceWays(reducedNodes, allNodes)
         val waysFileName = "WAYS-${rawFile.name}.csv"
         csvService.write(waysFileName, ways, Way)
         val waysFile = File(waysFileName)
-        //END TMP
 
-
-
-        logger.debug("Nodes: ${reducedNodes.count()}")
-
-
-//        val preprocessedFile = File("${UUID.randomUUID()}.xml")
-//        preprocessedFile.createNewFile()
-//        mapper.writeValue(preprocessedFile.outputStream(), osmFile)
+        upload(nodesFile, waysFile)
+        publish(ResultFileHolder(nodesFileName, waysFileName), task)
 
         logger.debug("Deleting local file")
-
-        //TODO each agent own folder
-        upload(nodesFile, waysFile)
-
-        val files = ResultFileHolder(nodesFileName, waysFileName)
-        publish(files, task)
         rawFile.delete()
+        nodesFile.delete()
+        waysFile.delete()
     }
 
     private fun upload(nodesFile: File, waysFile: File) {
@@ -137,7 +123,7 @@ class PreparationService @Autowired constructor(
 
     private fun Sequence<OSMWay>.reduceWays(reducedNodes: Sequence<OSMNode>, allNodes: Sequence<OSMNode>) = flatMap { it.reduce(reducedNodes, allNodes) }
 
-    private fun OSMWay.reduce(reducedNodes: Sequence<OSMNode>, allNodes: Sequence<OSMNode>): Sequence<OSMWay> {
+    private fun OSMWay.reduce(reducedNodes: Sequence<OSMNode>, allNodes: Sequence<OSMNode>): Sequence<Way> {
 
         val subWays = mutableListOf<Way>()
 
@@ -150,97 +136,24 @@ class PreparationService @Autowired constructor(
 
         wayNodes.forEach { current ->
             val isRelevant = reducedNodes.contains(current)
-            val prev = prevNode
             val start = currentStartNode
 
-            if (!isRelevant && prev == null) {
-                prevNode = current
-            } else if (isRelevant && prev == null) {
-                currentStartNode = current
-            } else if (isRelevant && prev != null && start == null) {
-                currentStartNode = current
+            if (isRelevant) {
+                if (start != null) {
+                    distance += prevNode?.distanceTo(current) ?: 0.0
+                    subWays.add(Way(id, start.id, current.id, distance))
+                }
                 distance = 0.0
-            } else if (!isRelevant && prev != null && start != null) {
-                distance += prev distanceTo current
-            } else if (isRelevant && prev != null && start != null) {
-                distance += prev distanceTo current
-                subWays.add(Way(id, start.id, current.id, distance))
                 currentStartNode = current
-                distance = 0.0
+            } else {
+                distance += prevNode?.distanceTo(current) ?: 0.0
             }
-            prevNode = current
 
+            prevNode = current
 
         }
 
-
-//        val ways = nd
-//                .mapNotNull { ref -> allNodes.find { it.id == ref.ref } }
-//                .forEach { current ->
-//                    val isRelevant = reducedNodes.contains(current)
-//                    val prev = prevNode
-//                    val start = currentStartNode
-//                    when {
-//                        prev != null && start == null && isRelevant -> {
-//                            currentStartNode = current
-//                            prevNode = current
-//                        }
-//                        prev != null && start != null && isRelevant -> {
-//                            distance += prev distanceTo current
-//                            finalWays.add(Way(this.id, start.id, current.id, distance))
-//                            distance = 0.0
-//                            currentStartNode = current
-//                            prevNode = current
-//                        }
-//                        prev != null && start != null && !isRelevant -> {
-//                            distance += prev distanceTo current
-//                            prevNode = current
-//                        }
-//                        prev == null && start == null && isRelevant -> {
-//                            currentStartNode = current
-//                            distance = 0.0
-//                            prevNode = current
-//                        }
-//                        prev == null && start != null && !isRelevant -> {
-//                            prevNode = current
-//                        }
-//                    }
-//
-//
-//
-//                    if(prevNode == null){
-//                        prevNode = node
-//                    } else {
-//                        when {
-//                            isRelevant && currentStartNode == null -> {
-//                                currentStartNode = node
-//                                distance = 0.0
-//                            }
-//                        }
-//                        if(!isRelevant) {
-//                            distance +=
-//                        }
-//                    }
-//                }
-//
-//
-
-
-//
-//        val wayNodes = nd
-//                ?.asSequence()
-//                ?.map { ref -> allNodes.first { it.id == ref.ref } }
-//                ?:sequenceOf()
-//
-//        val wayParts = (wayNodes zip wayNodes.drop(1))
-//                .map { it to it.distance() }
-//
-//        //TODO shrink ways
-//
-//        var lastDistance = 0.0
-//        var lastNode = wayNodes.first()
-//        val ways = mutableListOf<OSMWay>()
-        TODO()
+        return subWays.asSequence()
     }
 
     private fun download(boundingBox: BoundingBox) =
