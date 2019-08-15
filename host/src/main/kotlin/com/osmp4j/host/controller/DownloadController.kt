@@ -1,6 +1,6 @@
 package com.osmp4j.host.controller
 
-import com.osmp4j.host.services.ExportService
+import com.osmp4j.host.services.DownloadService
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.core.io.FileSystemResource
 import org.springframework.http.MediaType
@@ -12,11 +12,11 @@ import javax.servlet.http.HttpServletResponse
 
 @RestController
 @RequestMapping("downloads")
-class DownloadController @Autowired constructor(private val exportService: ExportService) {
+class DownloadController @Autowired constructor(private val downloadService: DownloadService) {
 
     @GetMapping("/exports/{name}", produces = [MediaType.APPLICATION_OCTET_STREAM_VALUE])
     fun getFile(@PathVariable name: String, response: HttpServletResponse): FileSystemResource {
-        val file = exportService.getFile(name)
+        val file = downloadService.getFile(name)
         return FileSystemResource(file)
     }
 

@@ -17,9 +17,9 @@ class DuplicatesService @Autowired constructor(private val template: RabbitTempl
     @RabbitListener(queues = [QueueNames.REQUEST_DUPLICATES])
     fun onDuplicatesRequest(request: DuplicateRequest) {
 
-        logger.debug("Received Duplicate_Request with ID: ${request.id}")
+//        logger.debug("Received Duplicate_Request with ID: ${request.id}")
 
-        template.convertAndSend(QueueNames.RESPONSE_DUPLICATES, DuplicateResponse("", request.id))
+//        template.convertAndSend(QueueNames.RESPONSE_DUPLICATES, DuplicateResponse("", request.id))
     }
 
 }

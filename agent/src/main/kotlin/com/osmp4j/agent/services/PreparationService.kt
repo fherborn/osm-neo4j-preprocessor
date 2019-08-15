@@ -14,10 +14,7 @@ import com.osmp4j.data.osm.features.OSMHighway
 import com.osmp4j.data.osm.file.OSMRoot
 import com.osmp4j.ftp.FTPService
 import com.osmp4j.http.*
-import com.osmp4j.messages.BoundingBoxToLargeError
-import com.osmp4j.messages.PreparationError
-import com.osmp4j.messages.PreparationRequest
-import com.osmp4j.messages.PreparationResponse
+import com.osmp4j.messages.*
 import com.osmp4j.models.BoundingBox
 import com.osmp4j.mq.QueueNames
 import org.slf4j.LoggerFactory
@@ -39,38 +36,41 @@ class PreparationService @Autowired constructor(
 
     @RabbitListener(queues = [QueueNames.PREPARATION_REQUEST])
     fun onPreparationRequest(request: PreparationRequest) {
+        val (box, task) = request
 
         //TODO Precheck errors like size. Because the client knows his source(osm) ans his restrictions
+//        logger.debug("Received request with ID: ${request.id}, BoundingBox: ${request.box}")
 
-        logger.debug("Received request with ID: ${request.id}, BoundingBox: ${request.boundingBox}")
+        //        logger.debug("Started checking for error")
 
-        val boundingBox = request.boundingBox
-
-        val downloadResult = download(boundingBox)
-        logger.debug("Started checking for error")
-
-        when (downloadResult) {
-            is DownloadError -> handleError(downloadResult, request)
-            is DownloadedFile -> startPreparing(downloadResult.file, request)
+        when (val result = download(box)) {
+            is DownloadError -> handleError(result, request)
+            is DownloadedFile -> startPreparing(result.file, box, task)
         }
     }
 
     private fun handleError(error: DownloadError, request: PreparationRequest) {
         when (error) {
-            is BandwidthExceededError -> bandWidthExceededErrorFound(error, request)
-            is BadRequestError -> boxToLargeErrorFound(request.boundingBox, request)
+            is BandwidthExceededError -> bandWidthExceededErrorFound(request)
+            is BadRequestError -> boxToLargeErrorFound(request)
             else -> logger.debug("Unknown error.")
         }
     }
 
-    private fun bandWidthExceededErrorFound(error: BandwidthExceededError, request: PreparationRequest) {
-        val waitSeconds = error.timeout + 1
+    private fun bandWidthExceededErrorFound(request: PreparationRequest) {
+        val waitSeconds = 30
         logger.debug("Bandwidth exceeded error, try again in $waitSeconds seconds before try again.")
         Thread.sleep(waitSeconds * 1000L)
         onPreparationRequest(request)
     }
 
-    private fun startPreparing(rawFile: File, request: PreparationRequest) {
+    private fun boxToLargeErrorFound(request: PreparationRequest) {
+        logger.debug("Box to large, sending error to host.")
+        template.convertAndSend(QueueNames.PREPARATION_ERROR, BoundingBoxToLargeError(request.box, request.task))
+    }
+
+    private fun startPreparing(rawFile: File, box: BoundingBox, task: TaskInfo) {
+
         val mapper = XmlMapper()
         mapper.registerModule(ParameterNamesModule())
         mapper.registerModule(KotlinModule())
@@ -111,8 +111,20 @@ class PreparationService @Autowired constructor(
 //        mapper.writeValue(preprocessedFile.outputStream(), osmFile)
 
         logger.debug("Deleting local file")
-        publish(nodesFile, waysFile, request)
+
+        //TODO each agent own folder
+        upload(nodesFile, waysFile)
+
+        val files = ResultFileHolder(nodesFileName, waysFileName)
+        publish(files, task)
         rawFile.delete()
+    }
+
+    private fun upload(nodesFile: File, waysFile: File) {
+        logger.debug("Started uploading")
+        ftpService.upload(nodesFile.name, nodesFile)
+        ftpService.upload(waysFile.name, waysFile)
+        logger.debug("Finished uploading")
     }
 
     private fun Sequence<OSMWay>.getStartAndEndNodes(allNodes: Sequence<OSMNode>) = mapNotNull { it.nd }
@@ -142,13 +154,6 @@ class PreparationService @Autowired constructor(
         TODO()
     }
 
-    private fun boxToLargeErrorFound(boundingBox: BoundingBox, request: PreparationRequest) {
-        logger.debug("Box to large, sending error to host.")
-        sendError(BoundingBoxToLargeError(boundingBox, request.id))
-    }
-
-    private fun sendError(error: PreparationError) = template.convertAndSend(QueueNames.PREPARATION_ERROR, error)
-
     private fun download(boundingBox: BoundingBox) =
             httpService.download(getUrl(boundingBox), "${UUID.randomUUID()}.txt")
 
@@ -156,21 +161,12 @@ class PreparationService @Autowired constructor(
     private fun getUrl(boundingBox: BoundingBox) =
             "https://www.openstreetmap.org/api/0.6/map?bbox=${boundingBox.fromLat},${boundingBox.fromLon},${boundingBox.toLat},${boundingBox.toLon}"
 
-    private fun publish(nodesFile: File, waysFile: File, request: PreparationRequest) {
-
-        //TODO each agent own folder
-        logger.debug("Started uploading")
-        ftpService.upload(nodesFile.name, nodesFile)
-        ftpService.upload(waysFile.name, waysFile)
-        logger.debug("Finished uploading")
-
+    private fun publish(files: ResultFileHolder, task: TaskInfo) {
         logger.debug("Started sending to host")
-        sendResultToHost(nodesFile.name, waysFile.name, request)
+        template.convertAndSend(QueueNames.PREPARATION_RESPONSE, PreparationResponse(files, task))
         logger.debug("Finished sending to host")
     }
 
-    private fun sendResultToHost(nodesFile: String, waysFile: String, request: PreparationRequest) {
-        template.convertAndSend(QueueNames.PREPARATION_RESPONSE, PreparationResponse(nodesFile, waysFile, request.id))
-    }
+    private fun TaskInfo.debug(text: String) { logger.debug("TaskInfo: $id -> $text") }
 
 }
