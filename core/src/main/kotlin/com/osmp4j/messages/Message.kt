@@ -1,17 +1,17 @@
 package com.osmp4j.messages
 
 import com.osmp4j.models.BoundingBox
-import com.osmp4j.models.Identifiable
 import java.io.Serializable
-import java.util.*
 
-interface Message : Identifiable, Serializable
+interface Message : Serializable {
+    val task: TaskInfo
+}
 
-data class PreparationRequest(val boundingBox: BoundingBox, override val id: UUID = UUID.randomUUID()) : Message
-data class DuplicateRequest(val fileName: String, override val id: UUID = UUID.randomUUID()) : Message
+data class PreparationRequest(val box: BoundingBox, override val task: TaskInfo) : Message
+data class DuplicateRequest(val fileName: String, override val task: TaskInfo) : Message
 
-data class PreparationResponse(val fileName: String, override val id: UUID) : Message
-data class DuplicateResponse(val fileName: String, override val id: UUID) : Message
+data class PreparationResponse(val files: ResultFileHolder, override val task: TaskInfo) : Message
+data class DuplicateResponse(val fileName: String, override val task: TaskInfo) : Message
 
-sealed class PreparationError(override val id: UUID) : Message
-class BoundingBoxToLargeError(val boundingBox: BoundingBox, id: UUID) : PreparationError(id)
+sealed class PreparationError : Message
+data class BoundingBoxToLargeError(val box: BoundingBox, override val task: TaskInfo) : PreparationError()

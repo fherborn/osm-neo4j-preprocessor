@@ -13,7 +13,7 @@ sealed class DownloadResult
 data class DownloadedFile(val file: File) : DownloadResult()
 sealed class DownloadError(val status: Int, val reason: String) : DownloadResult()
 class BadRequestError(reason: String) : DownloadError(HttpStatus.SC_BAD_REQUEST, reason)
-class BandwidthExceededError(reason: String, val timeout: Int) : DownloadError(509, reason)
+class BandwidthExceededError(reason: String) : DownloadError(509, reason)
 
 @Service
 class HttpService {
@@ -33,7 +33,7 @@ class HttpService {
         if (code != HttpStatus.SC_OK) {
             when (code) {
                 400 -> return BadRequestError(response.statusLine.reasonPhrase)
-                509 -> return BandwidthExceededError(response.statusLine.reasonPhrase, 30)
+                509 -> return BandwidthExceededError(response.statusLine.reasonPhrase)
             }
         }
 

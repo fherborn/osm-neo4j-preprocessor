@@ -1,7 +1,7 @@
 package com.osmp4j.host.controller
 
-import com.osmp4j.host.models.Task
 import com.osmp4j.host.services.ExportService
+import com.osmp4j.messages.TaskInfo
 import com.osmp4j.models.BoundingBox
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Controller
@@ -36,7 +36,7 @@ class ExportController @Autowired constructor(private val exportService: ExportS
         return getResultTemplate(model, input)
     }
 
-    private fun InputForm.toTask() = Task(taskName, email, BoundingBox.createFixed(fromLat, fromLon, toLat, toLon))
+    private fun InputForm.toTask() = TaskInfo(taskName, email, BoundingBox.createFixed(fromLat, fromLon, toLat, toLon))
 
     private fun getResultTemplate(model: Model, input: InputForm): String {
         model.addAttribute(RESULT_ATTRIBUTE, input)

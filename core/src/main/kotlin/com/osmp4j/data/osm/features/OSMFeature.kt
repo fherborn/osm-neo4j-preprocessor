@@ -30,3 +30,37 @@ open class OSMFeature<T>(val name: String) {
     protected fun value(name: String) = OSMValue<T>(name)
     protected fun attr(name: String) = OSMAttribute<T>(name)
 }
+
+val features = listOf(
+        OSMAerialWay,
+        OSMAmenity,
+        OSMBarrier,
+        OSMBoundary,
+        OSMBuilding,
+        OSMBusway,
+        OSMCraft,
+        OSMCycleway,
+        OSMEmergency,
+        OSMGeological,
+        OSMHighway,
+        OSMHistoric,
+        OSMLanduse,
+        OSMLeisure,
+        OSMLine,
+        OSMManMade,
+        OSMMilitary,
+        OSMNatural,
+        OSMOffice,
+        OSMPlace,
+        OSMPower,
+        OSMPublicTransport,
+        OSMRailway,
+        OSMRoute,
+        OSMService,
+        OSMShop,
+        OSMSidewalk,
+        OSMSport,
+        OSMTelecom,
+        OSMTourism,
+        OSMWaterway
+)
