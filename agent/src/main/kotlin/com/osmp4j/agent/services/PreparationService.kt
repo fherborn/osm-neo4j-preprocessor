@@ -9,6 +9,7 @@ import com.osmp4j.data.Node
 import com.osmp4j.data.Way
 import com.osmp4j.data.osm.elements.OSMNode
 import com.osmp4j.data.osm.elements.OSMWay
+import com.osmp4j.data.osm.extensions.distanceTo
 import com.osmp4j.data.osm.extensions.filter
 import com.osmp4j.data.osm.features.OSMHighway
 import com.osmp4j.data.osm.file.OSMRoot
@@ -134,9 +135,97 @@ class PreparationService @Autowired constructor(
             .mapNotNull { ref -> allNodes.find { it.id == ref } }
 
 
-    private fun Sequence<OSMWay>.reduceWays(reducedNodes: Sequence<OSMNode>, allNodes: Sequence<OSMNode>) = asSequence().flatMap { it.reduce(reducedNodes, allNodes) }
+    private fun Sequence<OSMWay>.reduceWays(reducedNodes: Sequence<OSMNode>, allNodes: Sequence<OSMNode>) = flatMap { it.reduce(reducedNodes, allNodes) }
 
     private fun OSMWay.reduce(reducedNodes: Sequence<OSMNode>, allNodes: Sequence<OSMNode>): Sequence<OSMWay> {
+
+        val subWays = mutableListOf<Way>()
+
+        val wayNodes = nd.mapNotNull { ref -> allNodes.find { it.id == ref.ref } } // TODO improve performance
+
+        var prevNode: OSMNode? = null
+        var currentStartNode: OSMNode? = null
+        var distance = 0.0
+
+
+        wayNodes.forEach { current ->
+            val isRelevant = reducedNodes.contains(current)
+            val prev = prevNode
+            val start = currentStartNode
+
+            if (!isRelevant && prev == null) {
+                prevNode = current
+            } else if (isRelevant && prev == null) {
+                currentStartNode = current
+            } else if (isRelevant && prev != null && start == null) {
+                currentStartNode = current
+                distance = 0.0
+            } else if (!isRelevant && prev != null && start != null) {
+                distance += prev distanceTo current
+            } else if (isRelevant && prev != null && start != null) {
+                distance += prev distanceTo current
+                subWays.add(Way(id, start.id, current.id, distance))
+                currentStartNode = current
+                distance = 0.0
+            }
+            prevNode = current
+
+
+        }
+
+
+//        val ways = nd
+//                .mapNotNull { ref -> allNodes.find { it.id == ref.ref } }
+//                .forEach { current ->
+//                    val isRelevant = reducedNodes.contains(current)
+//                    val prev = prevNode
+//                    val start = currentStartNode
+//                    when {
+//                        prev != null && start == null && isRelevant -> {
+//                            currentStartNode = current
+//                            prevNode = current
+//                        }
+//                        prev != null && start != null && isRelevant -> {
+//                            distance += prev distanceTo current
+//                            finalWays.add(Way(this.id, start.id, current.id, distance))
+//                            distance = 0.0
+//                            currentStartNode = current
+//                            prevNode = current
+//                        }
+//                        prev != null && start != null && !isRelevant -> {
+//                            distance += prev distanceTo current
+//                            prevNode = current
+//                        }
+//                        prev == null && start == null && isRelevant -> {
+//                            currentStartNode = current
+//                            distance = 0.0
+//                            prevNode = current
+//                        }
+//                        prev == null && start != null && !isRelevant -> {
+//                            prevNode = current
+//                        }
+//                    }
+//
+//
+//
+//                    if(prevNode == null){
+//                        prevNode = node
+//                    } else {
+//                        when {
+//                            isRelevant && currentStartNode == null -> {
+//                                currentStartNode = node
+//                                distance = 0.0
+//                            }
+//                        }
+//                        if(!isRelevant) {
+//                            distance +=
+//                        }
+//                    }
+//                }
+//
+//
+
+
 //
 //        val wayNodes = nd
 //                ?.asSequence()
