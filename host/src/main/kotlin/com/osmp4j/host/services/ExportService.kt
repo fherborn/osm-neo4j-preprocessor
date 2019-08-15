@@ -1,5 +1,6 @@
 package com.osmp4j.host.services
 
+import com.osmp4j.ftp.FTPService
 import com.osmp4j.messages.*
 import com.osmp4j.models.BoundingBox
 import com.osmp4j.mq.QueueNames
@@ -8,16 +9,19 @@ import org.springframework.amqp.rabbit.annotation.RabbitListener
 import org.springframework.amqp.rabbit.core.RabbitTemplate
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
+import java.io.File
 import java.util.*
 
 
 @Service
-class ExportService @Autowired constructor(private val template: RabbitTemplate, private val downloadService: DownloadService) {
+class ExportService @Autowired constructor(private val template: RabbitTemplate, private val downloadService: DownloadService, private val ftpService: FTPService) {
 
     private val logger = LoggerFactory.getLogger(ExportService::class.java)
 
     private val preparationRequests = mutableMapOf<UUID, Int>()
     private val duplicatesRequests = mutableMapOf<UUID, Int>()
+
+    private val preparationResults = mutableMapOf<UUID, List<ResultFileNameHolder>>()
 
     fun startExport(task: TaskInfo) {
         task.exportStarted()
@@ -45,26 +49,40 @@ class ExportService @Autowired constructor(private val template: RabbitTemplate,
         val (files, task) = response
         preparationRequests.decrement(task.id)
 
-//        val id = UUID.randomUUID()
-//        val nodesFile = "NODES-$id.csv"
-//        val waysFile = "WAYS-$id.csv"
-//        results[nodesFile] = response.nodesFile
-//        results[waysFile] = response.waysFile
-//        println("""
-//            Download:
-//            Nodes -> http://192.168.0.192:8080/downloads/exports/$nodesFile
-//            Ways -> http://192.168.0.192:8080/downloads/exports/$waysFile
-//            """.trimIndent())
-
-        //TODO save result to combine later
+        preparationResults[task.id] = (preparationResults[task.id] ?: listOf()) + files
 
         if (response.task.isPreparationFinished()) {
             task.preparationFinished()
             //TODO Combine result files
             //TODO Start removeFile duplicates
+
+            val finalNodesFile = File("nodes-merged-${task.id}")
+            val finalWaysFile = File("ways-merged-${task.id}")
+
+            val nodesFileNames = preparationResults[task.id]?.map { it.nodesFileName } ?: listOf()
+            val waysFileNames = preparationResults[task.id]?.map { it.waysFileName } ?: listOf()
+
+            val nodesFiles = nodesFileNames.map { ftpService.download(it) }
+            val waysFiles = waysFileNames.map { ftpService.download(it) }
+
+            finalNodesFile.appendCSV(nodesFiles)
+            finalWaysFile.appendCSV(waysFiles)
+
+            downloadService.saveForDownload(task, ResultFileHolder(finalNodesFile, finalWaysFile))
         }
     }
 
+    fun File.appendCSV(files : List<File>) = files.forEach { file ->
+        var index = 0
+        var headerAppended : Boolean = false
+        file.forEachLine { line ->
+            if (index != 0 || !headerAppended) {
+                appendText(line)
+                headerAppended = true
+                index++
+            }
+        }
+    }
 
     private fun TaskInfo.isPreparationFinished() = preparationRequests.isZero(id)
 
