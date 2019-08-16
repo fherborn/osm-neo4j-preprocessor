@@ -127,9 +127,9 @@ class ExportController @Autowired constructor(private val exportService: ExportS
                             }
 
                             h6(classes = "mt-4") { +"Nodes:" }
+                            br {}
                             event.nodeFileNames.forEach { (_, file) ->
                                 div(classes = "mt-2") {
-                                    br {}
                                     a(href = file) { +file }
                                 }
                             }
@@ -147,7 +147,7 @@ class ExportController @Autowired constructor(private val exportService: ExportS
                             }
 
                             div(classes = "text-info mt-4") {
-                                strong { +"You need an Indexes! " }
+                                strong { +"You need Indexes! " }
                                 +("To improve the performance of the import, as well as later queries, an index must be added for the nodes.")
                             }
 
