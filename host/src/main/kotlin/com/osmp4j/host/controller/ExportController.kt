@@ -127,7 +127,6 @@ class ExportController @Autowired constructor(private val exportService: ExportS
                             }
 
                             h6(classes = "mt-4") { +"Nodes:" }
-                            br {}
                             event.nodeFileNames.forEach { (_, file) ->
                                 div(classes = "mt-2") {
                                     a(href = file) { +file }
@@ -160,9 +159,9 @@ class ExportController @Autowired constructor(private val exportService: ExportS
                             }
 
                             h6(classes = "mt-4") { +"Ways:" }
-                            br {}
                             a(href = event.waysFileName, classes = "mt-2") { +event.waysFileName }
 
+                            br {}
                             em(classes = "text-muted") { +"Import ways: " }
                             div(classes = "mt-2") {
                                 div(classes = "col-12") {
