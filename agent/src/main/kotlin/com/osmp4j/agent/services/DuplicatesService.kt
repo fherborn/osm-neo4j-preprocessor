@@ -1,12 +1,8 @@
 package com.osmp4j.agent.services
 
-import com.osmp4j.data.Node
-import com.osmp4j.data.Way
-import com.osmp4j.data.filterMap
+import com.osmp4j.data.*
 import com.osmp4j.ftp.FTPService
-import com.osmp4j.messages.DuplicateRequest
-import com.osmp4j.messages.DuplicateResponse
-import com.osmp4j.messages.FileType
+import com.osmp4j.messages.*
 import com.osmp4j.mq.QueueNames
 import org.slf4j.LoggerFactory
 import org.springframework.amqp.rabbit.annotation.RabbitListener
@@ -21,27 +17,31 @@ class DuplicatesService @Autowired constructor(private val template: RabbitTempl
 
     @RabbitListener(queues = [QueueNames.DUPLICATES_REQUEST])
     fun onDuplicatesRequest(request: DuplicateRequest) {
-        val (fileName, fileType, task) = request
-
-        logger.debug("Remove duplicates for type $fileType - $fileName")
 
         // TODO delete ftp files
-        val file = ftpService.downloadAndDelete(fileName)
+        val file = ftpService.downloadAndDelete(request.fileName)
 
-        val finalFile = when (fileType) {
-            FileType.NODES -> file.filterMap("df-${file.name}", Node) { distinctBy { it.id } }
-            FileType.WAYS -> file.filterMap("df-${file.name}", Way) { distinctBy { it.id } }
+        when(request) {
+            is NodesDuplicateRequest -> {
+                val finalFile = file.filterMap("df-${file.name}", getConverter(request.nodeType)) { distinctBy { it.id } }
+                ftpService.upload(finalFile.name, finalFile)
+                template.convertAndSend(QueueNames.DUPLICATES_RESPONSE, NodesDuplicateResponse(finalFile.name, request.nodeType, request.task))
+                finalFile.delete()
+            }
+            is WaysDuplicateRequest -> {
+                val finalFile = file.filterMap("df-${file.name}", WayConverter) { distinctBy { it.id } }
+                ftpService.upload(finalFile.name, finalFile)
+                template.convertAndSend(QueueNames.DUPLICATES_RESPONSE, WaysDuplicateResponse(finalFile.name, request.task))
+                finalFile.delete()
+            }
         }
 
 
-        ftpService.upload(finalFile.name, finalFile)
+        logger.debug("Finished remove duplicates for ${file.name}")
 
         file.delete()
-        finalFile.delete()
 
-        template.convertAndSend(QueueNames.DUPLICATES_RESPONSE, DuplicateResponse(finalFile.name, fileType, task))
 
-        logger.debug("Finished remove duplicates for type $fileType - $fileName")
     }
 
 

@@ -7,6 +7,7 @@ import java.io.File
 
 class FTPClientWrapper(private val ftpClient: FTPClient) {
     fun upload(remote: String, file: File) = ftpClient.storeFile(remote, file.inputStream())
+    fun upload(file: File) = upload(file.name, file)
     fun download(remote: String, file: File) = file.also { ftpClient.retrieveFile(remote, it.outputStream()) }
     fun download(remote: String, outFile: String = remote) = download(remote, File(outFile))
     fun downloadAndDelete(remote: String, file: File) = download(remote, file).also { ftpClient.deleteFile(remote) }

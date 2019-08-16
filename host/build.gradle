@@ -45,6 +45,7 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     implementation("com.osmp4j:core:0.0.1")
+    compile 'org.jetbrains.kotlinx:kotlinx-html-jvm:0.6.4' // server side dev
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation('org.junit.jupiter:junit-jupiter-api:5.5.1')
 }

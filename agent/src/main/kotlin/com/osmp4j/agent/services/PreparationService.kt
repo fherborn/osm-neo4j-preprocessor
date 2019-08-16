@@ -4,14 +4,10 @@ import com.fasterxml.jackson.dataformat.xml.XmlMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.fasterxml.jackson.module.paramnames.ParameterNamesModule
-import com.osmp4j.data.CSVService
-import com.osmp4j.data.Node
-import com.osmp4j.data.Way
+import com.osmp4j.data.*
 import com.osmp4j.data.osm.elements.OSMNode
 import com.osmp4j.data.osm.elements.OSMWay
 import com.osmp4j.data.osm.extensions.distanceTo
-import com.osmp4j.data.osm.extensions.filter
-import com.osmp4j.data.osm.features.OSMHighway
 import com.osmp4j.data.osm.file.OSMRoot
 import com.osmp4j.ftp.FTPService
 import com.osmp4j.http.*
@@ -25,6 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import java.io.File
 import java.util.*
+import kotlin.math.log
 
 @Service
 class PreparationService @Autowired constructor(
@@ -83,42 +80,53 @@ class PreparationService @Autowired constructor(
         val allNodes = osmFile.node?.asSequence() ?: sequenceOf()
         val allWays = osmFile.way?.asSequence() ?: sequenceOf()
 
-        val features = allNodes.filter(OSMHighway)
+        val featureMap = task.types.asSequence().mapNotNull { type -> type to getConverter(type) }
+                .flatMap { (type, converter) ->
+                    allNodes.filter { converter.isType(it) }.map { type to converter.fromOSM(it) }
+                }
 
-        //REMOVE CLOSED WAYS
+        //Remove closed ways
         val openWays = allWays.filter { it.nd.first() != it.nd.last() }
+
+        //Filter nodes
         val startEndNodes = openWays.getStartAndEndNodes(allNodes)
-        val reducedNodes = (features + startEndNodes).distinctBy { it.id }
+                .filter { featureMap.find { ex -> ex.second.id == it.id } == null }
+                .map { NodeType.NODE to NodeConverter.fromOSM(it) }
+        val reducedNodes = (featureMap + startEndNodes).distinctBy { it.second.id }
 
-        //val reducedWays = allWays.reduceWays(reducedNodes, allNodes)
-        val csvService = CSVService()
-        val nodesFileName = "NODES-${rawFile.name}"
-        val nodesToWrite = reducedNodes.map { Node(it.id, it.lat, it.lon) }
-        csvService.write(nodesFileName, nodesToWrite, Node)
-        val nodesFile = File(nodesFileName)
+        //Group for performance
+        val allNodesMap = allNodes.map { NodeConverter.fromOSM(it) }.groupBy { it.id.getKey() }
+        val reducedNodesMap = reducedNodes.map { it.second }.groupBy { it.id.getKey() }
 
-        val allNodesMap = allNodes.groupBy { it.id.getKey() }
-        val reducedNodesMap = reducedNodes.groupBy { it.id.getKey() }
-
+        //Reduce ways
         val ways = openWays.reduceWays(reducedNodesMap, allNodesMap)
-        val waysFileName = "WAYS-${rawFile.name}"
-        csvService.write(waysFileName, ways, Way)
-        val waysFile = File(waysFileName)
 
-        uploadFiles(nodesFile, waysFile)
-        publish(ResultFileNameHolder(nodesFileName, waysFileName), task)
+        //Write nodes
+        val sortedNodes = reducedNodes.groupBy { it.first }.mapValues { np -> np.value.map { it.second } }
+        val nodeFiles = sortedNodes.mapValues { it.value.toFile(getConverter(it.key)) }
+
+        logger.debug(sortedNodes.keys.joinToString())
+        logger.debug(reducedNodesMap.map{"${it.key} - ${it.value.size}"}.joinToString())
+        logger.debug("Ways - ${ways.count()}")
+
+        //Write ways
+        val waysFile = ways.toFile(WayConverter)
+
+        uploadFiles(nodeFiles.values + waysFile)
+
+        val nodeFileNames = nodeFiles.mapValues { it.value.name }
+        publish(ResultFileNameHolder(nodeFileNames, waysFile.name), task)
 
         logger.debug("Deleting local file")
         rawFile.delete()
-        nodesFile.delete()
+        nodeFiles.values.forEach{ it.delete() }
         waysFile.delete()
     }
 
-    private fun uploadFiles(nodesFile: File, waysFile: File) {
+    private fun uploadFiles(files: List<File>) {
         logger.debug("Started uploading")
         ftpService.execute {
-            upload(nodesFile.name, nodesFile)
-            upload(waysFile.name, waysFile)
+            files.forEach { upload(it) }
         }
         logger.debug("Finished uploading")
     }
@@ -130,16 +138,17 @@ class PreparationService @Autowired constructor(
             .mapNotNull { ref -> allNodes.find { it.id == ref } }
 
 
-    private fun Sequence<OSMWay>.reduceWays(reducedNodes: Map<String, List<OSMNode>>, allNodes: Map<String, List<OSMNode>>) = flatMap { it.reduce(reducedNodes, allNodes) }
+    private fun Sequence<OSMWay>.reduceWays(reducedNodes: Map<String, List<Node>>, allNodes: Map<String, List<Node>>) = flatMap { it.reduce(reducedNodes, allNodes) }
 
-    private fun OSMWay.reduce(reducedNodes: Map<String, List<OSMNode>>, allNodes: Map<String, List<OSMNode>>): Sequence<Way> {
+    private fun OSMWay.reduce(reducedNodes: Map<String, List<Node>>, allNodes: Map<String, List<Node>>): Sequence<Way> {
 
         logger.debug("Start generating subways")
+        logger.debug("REDUCED NODES = ${reducedNodes.values.size}")
 
         val subWays = mutableListOf<Way>()
 
-        var prevNode: OSMNode? = null
-        var currentStartNode: OSMNode? = null
+        var prevNode: Node? = null
+        var currentStartNode: Node? = null
         var distance = 0.0
 
 
@@ -149,7 +158,7 @@ class PreparationService @Autowired constructor(
         nd
                 .asSequence()
                 .mapNotNull { ref -> allNodes[ref.ref.getKey()]?.find { it.id == ref.ref } }
-                .map { node -> node to (reducedNodes[node.id.getKey()]?.contains(node)?:false) }
+                .map { node -> node to (reducedNodes[node.id.getKey()]?.find { it.id == node.id }!=null) }
                 .forEach { (current, isRelevant) ->
                     val start = currentStartNode
                     if (isRelevant) {

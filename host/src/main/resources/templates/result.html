@@ -18,12 +18,6 @@
             src="https://unpkg.com/bootstrap-material-design@4.1.1/dist/js/bootstrap-material-design.js"></script>
 </head>
 <body>
-<h1>Result</h1>
-<p th:text="'Task Name: ' + ${result.taskName}"/>
-<p th:text="'From Latitude: ' + ${result.fromLat}"/>
-<p th:text="'From Longitude: ' + ${result.fromLon}"/>
-<p th:text="'To Latitude: ' + ${result.toLat}"/>
-<p th:text="'To Longitude: ' + ${result.toLon}"/>
-<a href="/">Submit another message</a>
+<div class="content" th:utext="${text}"/>
 </body>
 </html>

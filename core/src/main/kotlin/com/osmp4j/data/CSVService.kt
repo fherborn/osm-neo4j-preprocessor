@@ -3,7 +3,7 @@ package com.osmp4j.data
 import java.io.BufferedReader
 import java.io.BufferedWriter
 import java.io.File
-import java.io.FileWriter
+import java.util.*
 
 interface CSVObject<T> {
     fun getTokens(): List<Any>
@@ -14,133 +14,60 @@ interface CSVObjectFactory<T : CSVObject<T>> {
     fun fromTokens(tokens: List<String>): T
 }
 
-fun List<Any>.toCSVLine() = joinToString(separator = ",", postfix = "\n")
+fun List<Any>.toFinalCSVLine() = joinToString(separator = ",", postfix = "\n")
 fun String.toCSVTokes() = split(",")
 
-class CSVService {
+fun <T : Any> List<T>.toFile(converter: CSVConverter<T>) = CSVWriterNeu(converter).append(this).getFile()
+fun <T : Any> Sequence<T>.toFile(converter: CSVConverter<T>) = CSVWriterNeu(converter).append(this).getFile()
 
+fun <T : Any> File.forEachCSV(converter: CSVConverter<T>, block: (T) -> Unit) =
+        CSVReaderNeu(this, converter).forEach(block)
 
-    fun <T : CSVObject<T>> write(path: String, values: Sequence<T>, factory: CSVObjectFactory<T>) {
-        val writer = FileWriter(path)
+fun <T : Any> List<File>.forEachCSV(converter: CSVConverter<T>, block: (T) -> Unit) =
+        forEach { it.forEachCSV(converter, block) }
 
-        val header = factory.getHeaders().toCSVLine()
-        writer.append(header)
+fun <K, T : Any> MutableMap<K, CSVWriterNeu<T>>.getWriter(key: K, converter: CSVConverter<T>, fileNameGenerator: (key: K) -> String) =
+        get(key) ?: (CSVWriterNeu(converter, fileNameGenerator(key)).also { set(key, it) })
 
-        values.map { it.getTokens() }
-                .map { it.toCSVLine() }
-                .forEach { writer.append(it) }
+fun <K, T : Any> MutableMap<K, CSVWriterNeu<T>>.getFiles() = mapValues { (_, v) -> v.getFile() }
 
-        writer.flush()
-        writer.close()
-    }
-
-    fun <T : CSVObject<T>> read(path: String, factory: CSVObjectFactory<T>) = read(File(path), factory)
-    fun <T : CSVObject<T>> read(file: File, factory: CSVObjectFactory<T>): Sequence<T> {
-        val reader = file.bufferedReader()
-
-        var line = reader.readLine()?.let {
-            val headers = it.toCSVTokes()
-            reader.readLine()
-        }
-
-        val result = mutableListOf<T>()
-        while (line != null) {
-            result.add(factory.fromTokens(line.toCSVTokes()))
-            line = reader.readLine()
-        }
-
-        reader.close()
-        return result.asSequence()
-    }
-}
-
-
-fun <T : CSVObject<T>> File.forEachCSV(factory: CSVObjectFactory<T>, hasHeader: Boolean = true, block: (T) -> Unit) =
-        CSVReader.create(this, factory, hasHeader).forEach(block)
-
-fun <T : CSVObject<T>> List<File>.forEachCSV(factory: CSVObjectFactory<T>, hasHeader: Boolean = true, block: (T) -> Unit) =
-        forEach { it.forEachCSV(factory, hasHeader, block) }
-
-fun <K, T : CSVObject<T>> MutableMap<K, CSVWriter<T>>.getWriter(key: K, factory: CSVObjectFactory<T>, fileNameGenerator: (key: K) -> String) =
-        get(key) ?: (CSVWriter.create(fileNameGenerator(key), factory).also { set(key, it) })
-
-fun <K, T : CSVObject<T>> MutableMap<K, CSVWriter<T>>.getFiles() = mapValues { (_, v) -> v.getFile() }
-
-fun <K, T : CSVObject<T>> List<File>.groupByCSV(factory: CSVObjectFactory<T>, fileNameGenerator: (key: K) -> String, groupBy: (T) -> K): Map<K, File> =
-        mutableMapOf<K, CSVWriter<T>>().also { fileWriters ->
-            forEachCSV(factory) { obj -> fileWriters.getWriter(groupBy(obj), factory, fileNameGenerator).append(obj) }
+fun <K, T : Any> List<File>.groupByCSV(converter: CSVConverter<T>, fileNameGenerator: (key: K) -> String, groupBy: (T) -> K): Map<K, File> =
+        mutableMapOf<K, CSVWriterNeu<T>>().also { fileWriters ->
+            forEachCSV(converter) { obj -> fileWriters.getWriter(groupBy(obj), converter, fileNameGenerator).append(obj) }
         }.getFiles()
 
-fun <T : CSVObject<T>> List<File>.mergeCSV(outFile: String, factory: CSVObjectFactory<T>, hasHeader: Boolean = true): File =
-        CSVWriter.create(outFile, factory, hasHeader).also { writer ->
-            forEachCSV(factory) { value ->
+fun <T : Any> List<File>.mergeCSV(outFile: String, converter: CSVConverter<T>): File =
+        CSVWriterNeu(converter, outFile).also { writer ->
+            forEachCSV(converter) { value ->
                 writer.append(value)
             }
         }.getFile()
 
-fun <T : CSVObject<T>> File.readCSVObjects(factory: CSVObjectFactory<T>, hasHeader: Boolean = true): List<T> {
+fun <T : Any> File.readCSVObjects(converter: CSVConverter<T>): List<T> {
     val result = mutableListOf<T>()
-    forEachCSV(factory, hasHeader) { result.add(it) }
+    forEachCSV(converter) { result.add(it) }
     return result
 }
 
-fun <T : CSVObject<T>> List<T>.toCSVFile(fileName: String, factory: CSVObjectFactory<T>, hasHeader: Boolean = true): File =
-        CSVWriter.create(fileName, factory, hasHeader).append(this).getFile()
+fun <T : Any> List<T>.toCSVFile(fileName: String, converter: CSVConverter<T>): File =
+        CSVWriterNeu(converter, fileName).append(this).getFile()
 
-fun <T : CSVObject<T>> File.filterMap(outFile: String, factory: CSVObjectFactory<T>, filter: List<T>.() -> List<T>) =
-        readCSVObjects(factory).filter().toCSVFile(outFile, factory)
+fun <T : Any> File.filterMap(outFile: String, converter: CSVConverter<T>, filter: List<T>.() -> List<T>) =
+        readCSVObjects(converter).filter().toCSVFile(outFile, converter)
 
 
-class CSVReader<T : CSVObject<T>> private constructor(private val file: File, private val factory: CSVObjectFactory<T>, private val hasHeader: Boolean) {
+class CSVWriterNeu<T : Any>(private val converter: CSVConverter<T>, fileName: String = "${converter.typeName()}-${UUID.randomUUID()}.csv") {
 
-    private val reader: BufferedReader by lazy { file.bufferedReader() }
-    val header: String? = if (hasHeader) reader.readLine() else null
-
-//    fun write(file: File) {
-//        val writer = file.bufferedWriter()
-//
-//        val header = factory.getHeaders().toCSVLine()
-//        writer.append(header)
-//
-//        values.map { it.getTokens() }
-//                .map { it.toCSVLine() }
-//                .forEach { writer.append(it) }
-//
-//        writer.flush()
-//        writer.close()
-//    }
-
-    private fun List<String>.toObject() = factory.fromTokens(this)
-    private fun readLine(): T? = reader.readLine()?.toCSVTokes()?.toObject()
-
-    fun forEach(f: (T) -> Unit) {
-        var obj = readLine()
-        while (obj != null) {
-            f(obj)
-            obj = readLine()
-        }
-        reader.close()
-    }
-
-    companion object {
-        fun <T : CSVObject<T>> create(path: String, factory: CSVObjectFactory<T>, hasHeader: Boolean = true): CSVReader<T> = create(File(path), factory, hasHeader)
-        fun <T : CSVObject<T>> create(file: File, factory: CSVObjectFactory<T>, hasHeader: Boolean = true) = CSVReader(file, factory, hasHeader)
-    }
-
-}
-
-class CSVWriter<T : CSVObject<T>> private constructor(private val file: File, private val factory: CSVObjectFactory<T>, private val hasHeader: Boolean) {
-
+    private val file = File(fileName)
     private val writer: BufferedWriter by lazy { file.bufferedWriter() }
 
     init {
-        if (hasHeader) {
-            writer.append(factory.getHeaders().toCSVLine())
-        }
+        writer.append(converter.getFinalHeader())
     }
 
-    fun append(obj: T) = this.also { writer.append(obj.getTokens().toCSVLine()) }
+    fun append(obj: T) = this.also { writer.append(converter.toFinalCSVLine(obj)) }
     fun append(objs: List<T>) = this.also { objs.forEach { append(it) } }
+    fun append(objs: Sequence<T>) = this.also { objs.forEach { append(it) } }
 
     fun close() {
         writer.flush()
@@ -148,10 +75,20 @@ class CSVWriter<T : CSVObject<T>> private constructor(private val file: File, pr
     }
 
     fun getFile() = file.also { close() }
+}
 
-    companion object {
-        fun <T : CSVObject<T>> create(path: String, factory: CSVObjectFactory<T>, hasHeader: Boolean = true): CSVWriter<T> = create(File(path), factory, hasHeader)
-        fun <T : CSVObject<T>> create(file: File, factory: CSVObjectFactory<T>, hasHeader: Boolean = true) = CSVWriter(file, factory, hasHeader)
+
+class CSVReaderNeu<T>(private val file: File, private val converter: CSVConverter<T>) {
+
+    private val reader: BufferedReader by lazy { file.bufferedReader().also { it.readLine() } }
+    private fun readLine(): T? = reader.readLine()?.let { converter.fromCSV(it) }
+    fun forEach(f: (T) -> Unit) {
+        var obj = readLine()
+        while (obj != null) {
+            f(obj)
+            obj = readLine()
+        }
+        reader.close()
     }
 
 }

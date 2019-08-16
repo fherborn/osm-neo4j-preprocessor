@@ -1,5 +1,6 @@
 package com.osmp4j.messages
 
+import com.osmp4j.data.NodeType
 import com.osmp4j.models.BoundingBox
 import java.io.Serializable
 
@@ -13,10 +14,16 @@ enum class FileType {
 }
 
 data class PreparationRequest(val box: BoundingBox, override val task: TaskInfo) : Message
-data class DuplicateRequest(val fileName: String, val fileType: FileType, override val task: TaskInfo) : Message
+
+sealed class DuplicateRequest(val fileName: String) : Message
+class NodesDuplicateRequest(fileName: String, val nodeType: NodeType, override val task: TaskInfo) : DuplicateRequest(fileName)
+class WaysDuplicateRequest(fileName: String, override val task: TaskInfo) : DuplicateRequest(fileName)
 
 data class PreparationResponse(val files: ResultFileNameHolder, override val task: TaskInfo) : Message
-data class DuplicateResponse(val fileName: String, val fileType: FileType, override val task: TaskInfo) : Message
+
+sealed class DuplicateResponse(val fileName: String) : Message
+class NodesDuplicateResponse(fileName: String, val nodeType: NodeType, override val task: TaskInfo) : DuplicateResponse(fileName)
+class WaysDuplicateResponse(fileName: String, override val task: TaskInfo) : DuplicateResponse(fileName)
 
 
 sealed class PreparationError : Message

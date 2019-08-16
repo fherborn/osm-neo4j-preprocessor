@@ -1,5 +1,6 @@
 package com.osmp4j.data.osm.extensions
 
+import com.osmp4j.data.Node
 import com.osmp4j.data.osm.elements.OSMNode
 import com.osmp4j.data.osm.features.OSMAttribute
 import com.osmp4j.data.osm.features.OSMFeature
@@ -18,3 +19,5 @@ fun OSMNode.isFeature() = tag != null
 fun OSMNode.getFeature() = features.find { isFeature(it) }
 
 infix fun OSMNode.distanceTo(other: OSMNode) = Point(lat, lon) distanceTo Point(other.lat, other.lon)
+
+infix fun Node.distanceTo(other: Node) = Point(lat, lon) distanceTo Point(other.lat, other.lon)

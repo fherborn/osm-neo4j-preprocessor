@@ -37,6 +37,7 @@ services:
     container_name: osmp4j-host
     restart: always
     environment:
+      HOST: 192.168.0.192:8080
       SPRING_RABBITMQ_HOST: rabbitmq
       SPRING_RABBITMQ_USERNAME: osmp4jadmin
       SPRING_RABBITMQ_PASSWORD: osmp4j

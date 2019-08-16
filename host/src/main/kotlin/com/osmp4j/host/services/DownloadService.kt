@@ -1,66 +1,60 @@
 package com.osmp4j.host.services
 
+import com.osmp4j.data.CSVConverter
+import com.osmp4j.data.Node
+import com.osmp4j.data.getConverter
 import com.osmp4j.ftp.FTPService
+import com.osmp4j.host.controller.PublishResultEvent
 import com.osmp4j.host.exceptions.FileNotFoundException
 import com.osmp4j.messages.ResultFileHolder
 import com.osmp4j.messages.TaskInfo
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.beans.factory.annotation.Value
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Service
 import java.io.File
 import java.io.IOException
-import java.net.InetAddress
 
 
 @Service
-class DownloadService @Autowired constructor(private val ftpService: FTPService) {
+class DownloadService @Autowired constructor(private val ftpService: FTPService, private val applicationEventPublisher: ApplicationEventPublisher) {
+
+    @Value("\${host}")
+    private lateinit var host: String
 
     private val logger = LoggerFactory.getLogger(DownloadService::class.java)
 
     fun saveForDownload(task: TaskInfo, files: ResultFileHolder) {
-        val nodeFileName = "${task.name.trim()}-nodes-${task.id}.csv"
+        fun <T> nodeFileName(converter: CSVConverter<T>) = "${task.name.trim()}-${converter.typeName()}-${task.id}.csv"
         val waysFileName = "${task.name.trim()}-ways-${task.id}.csv"
+
+        val nodeFileNames = mutableListOf<Pair<CSVConverter<Node>, String>>()
+
 
         ftpService.execute {
             makeDirectory(DOWNLOAD_FOLDER)
-            upload("$DOWNLOAD_FOLDER/$nodeFileName", files.nodesFile)
+            files.nodesFile
+                    .map { getConverter(it.first) to it.second }
+                    .forEach { (converter, file) ->
+                        val fileName = nodeFileName(converter)
+                        nodeFileNames.add(converter to fileName)
+                        upload("$DOWNLOAD_FOLDER/$fileName", file)
+                    }
             upload("$DOWNLOAD_FOLDER/$waysFileName", files.waysFile)
         }
 
-        files.nodesFile.delete()
+        files.nodesFile.forEach { it.second.delete() }
         files.waysFile.delete()
 
-        val hostName = InetAddress.getLocalHost().hostAddress
+        val host = if (host.startsWith("http")) host else "http://$host"
 
-        val nodesFile = "http://192.168.0.192:8080/downloads/exports/$nodeFileName"
-        val waysFile = "http://192.168.0.192:8080/downloads/exports/$waysFileName"
+        val nodesFiles = nodeFileNames.map { it.first to "$host/downloads/exports/${it.second}" }
+        val waysFile = "$host/downloads/exports/$waysFileName"
 
-        //TODO Send E-Mail
-        //TODO Find correct ip address
-        logger.debug("""Files available at:
-            nodes -> $nodesFile
-            ways -> $waysFile
-            
-            Import :
-            
-            LOAD CSV WITH HEADERS 
-            FROM "$nodesFile" AS line
-            CREATE (n:Node {id: line.id, lat: toFloat(line.lat), lon: toFloat(line.lon)});
-            
-            CREATE INDEX ON :Node(id);
-        
-            USING PERIODIC COMMIT 500
-            LOAD CSV WITH HEADERS FROM "$waysFile" AS line
-            MATCH (start:Node { id: line.start }),(end:Node { id: line.end})
-            CREATE (start)-[:Way { id: line.id, osmId: toInt(line.osmId), distance: toFloat(line.distance) }]->(end);
-            
-            CREATE INDEX ON :Way(id);
-            
-            Examples:
-            
-            MATCH (n)-[*]->(connected) RETURN connected LIMIT 10000;
-
-        """.trimIndent())
+        logger.debug("Sending publish event")
+        val event = PublishResultEvent(this, nodesFiles, waysFile, task)
+        applicationEventPublisher.publishEvent(event)
 
     }
 
@@ -68,7 +62,7 @@ class DownloadService @Autowired constructor(private val ftpService: FTPService)
         val file = File(fileName)
         try {
             ftpService.download("$DOWNLOAD_FOLDER/$fileName", file)
-        } catch (e : IOException)  {
+        } catch (e: IOException) {
             throw FileNotFoundException(fileName)
         }
         return file

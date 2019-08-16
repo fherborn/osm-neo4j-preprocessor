@@ -25,22 +25,26 @@ class ExportService @Autowired constructor(private val template: RabbitTemplate,
 
     private val preparationResults = mutableMapOf<UUID, List<ResultFileNameHolder>>()
 
-    private val duplicateFreeNodeFiles = mutableMapOf<UUID, List<String>>()
+    private val duplicateFreeNodeFiles = mutableMapOf<UUID, List<Pair<NodeType, String>>>()
     private val duplicateFreeWayFiles = mutableMapOf<UUID, List<String>>()
 
 
     @RabbitListener(queues = [QueueNames.DUPLICATES_RESPONSE])
     private fun onDuplicatesResponse(response: DuplicateResponse) {
-        val (fileName, fileType, task) = response
-        duplicatesRequests.decrement(task.id)
 
-        when (fileType) {
-            FileType.NODES -> duplicateFreeNodeFiles.add(task.id, fileName)
-            FileType.WAYS -> duplicateFreeWayFiles.add(task.id, fileName)
+        duplicatesRequests.decrement(response.task.id)
+
+        when (response) {
+            is NodesDuplicateResponse -> {
+                duplicateFreeNodeFiles.add(response.task.id, response.nodeType to response.fileName)
+            }
+            is WaysDuplicateResponse -> {
+                duplicateFreeWayFiles.add(response.task.id, response.fileName)
+            }
         }
 
-        if (task.isDuplicatesFinished()) {
-            onFinishDuplicates(task)
+        if (response.task.isDuplicatesFinished()) {
+            onFinishDuplicates(response.task)
         }
     }
 
@@ -78,11 +82,17 @@ class ExportService @Autowired constructor(private val template: RabbitTemplate,
     private fun onPreparationFinished(task: TaskInfo) {
         task.preparationFinished()
 
-        val nodesFileNames = preparationResults[task.id]?.map { it.nodesFileName } ?: listOf()
+        val nodesFileNames = preparationResults[task.id]
+                ?.map { it.nodeFileNames }
+                ?.flatMap { map -> map.map { it.key to it.value } }
+                ?.groupBy { it.first }
+                ?.mapValues { l -> l.value.map { it.second } }
+                ?: mapOf()
+
         val waysFileNames = preparationResults[task.id]?.map { it.waysFileName } ?: listOf()
 
         val (nodesFiles, waysFiles) = ftpService.execute {
-            val nodesFiles = nodesFileNames.map { downloadAndDelete(it) }
+            val nodesFiles = nodesFileNames.map { nf -> nf.key to nf.value.map { downloadAndDelete(it) } }
             val waysFiles = waysFileNames.map { downloadAndDelete(it) }
             nodesFiles to waysFiles
         }
@@ -94,14 +104,23 @@ class ExportService @Autowired constructor(private val template: RabbitTemplate,
     private fun onFinishDuplicates(task: TaskInfo) {
         //TODO work with streams
 
+        logger.debug("FINISH duplicates for ${task.types}")
+
         val (nodeFiles, wayFiles) = ftpService.execute {
-            val nodeFiles = duplicateFreeNodeFiles[task.id]?.map { downloadAndDelete(it) } ?: listOf()
+            val nodeFiles = duplicateFreeNodeFiles[task.id]
+                    ?.map { (type, file) -> type to downloadAndDelete(file) }
+                    ?.groupBy { it.first }
+                    ?.mapValues { g -> g.value.map { it.second } }
+                    ?: mapOf()
             val wayFiles = duplicateFreeWayFiles[task.id]?.map { downloadAndDelete(it) } ?: listOf()
             nodeFiles to wayFiles
         }
 
-        val mergedNodesFile = nodeFiles.mergeCSV("nodes-merged-${task.id}", Node)
-        val mergedWaysFile = wayFiles.mergeCSV("ways-merged-${task.id}", Way)
+        val mergedNodesFile = nodeFiles.map { g ->
+            val converter = getConverter(g.key)
+            g.key to g.value.mergeCSV("${converter.typeName()}-merged-${task.id}", converter)
+        }
+        val mergedWaysFile = wayFiles.mergeCSV("ways-merged-${task.id}", WayConverter)
 
         downloadService.saveForDownload(task, ResultFileHolder(mergedNodesFile, mergedWaysFile))
     }
@@ -120,44 +139,48 @@ class ExportService @Autowired constructor(private val template: RabbitTemplate,
         template.convertAndSend(QueueNames.PREPARATION_REQUEST, request)
     }
 
-    private fun sendDuplicateRequest(request: DuplicateRequest) {
+    private fun sendDuplicateRequest(request: DuplicateRequest, task: TaskInfo) {
+        duplicatesRequests.increment(task.id)
         template.convertAndSend(QueueNames.DUPLICATES_REQUEST, request)
     }
 
-    private fun removeDuplicates(nodesFiles: List<File>, waysFiles: List<File>, task: TaskInfo) {
+    private fun removeDuplicates(nodesFiles: List<Pair<NodeType, List<File>>>, waysFiles: List<File>, task: TaskInfo) {
 
-        fun getFileGen(prefix: String): (String) -> String = { "$prefix-$it-${UUID.randomUUID()}.csv" }
+        fun getFileGen(prefix: String): (String) -> String = { "rmd-$prefix-$it-${UUID.randomUUID()}.csv" }
 
-        val nodesFileGen = getFileGen("nodes")
+        fun <T> getNodeFileGen(converter: CSVConverter<T>) = getFileGen(converter.typeName())
         val waysFileGen = getFileGen("ways")
 
-        val nodeFileMap = nodesFiles.groupByCSV(Node, nodesFileGen) { it.id.toString().take(2) }
-        val wayFileMap = waysFiles.groupByCSV(Way, waysFileGen) { it.id.take(2) }
+        val nodeFileMap = nodesFiles.map { (type, files) ->
+            val converter = getConverter(type)
+            type to files.groupByCSV(converter, getNodeFileGen(converter)) { it.id.toString().take(2) }
+        }
+        val wayFileMap = waysFiles.groupByCSV(WayConverter, waysFileGen) { it.id.take(2) }
 
         ftpService.execute {
-            nodeFileMap.values.forEach{ upload(it.name, it) }
+            nodeFileMap.forEach { g -> g.second.forEach { upload(it.value) } }
             wayFileMap.values.forEach{ upload(it.name, it) }
         }
 
-        nodeFileMap.values.forEach {
-            sendDuplicateRequest(it.name, FileType.NODES, task)
-            it.delete()
+        nodeFileMap.forEach { g ->
+            g.second.values.forEach { file ->
+                val request = NodesDuplicateRequest(file.name, g.first, task)
+                sendDuplicateRequest(request, task)
+                file.delete()
+            }
         }
 
-        wayFileMap.values.forEach {
-            sendDuplicateRequest(it.name, FileType.WAYS, task)
-            it.delete()
+
+
+        wayFileMap.values.forEach { file ->
+            val request = WaysDuplicateRequest(file.name, task)
+            sendDuplicateRequest(request, task)
+            file.delete()
         }
 
-        nodesFiles.forEach { it.delete() }
+        nodesFiles.flatMap { it.second }.forEach { it.delete() }
         waysFiles.forEach { it.delete() }
 
-    }
-
-    private fun sendDuplicateRequest(fileName: String, fileType: FileType, task: TaskInfo) {
-        val request = DuplicateRequest(fileName, fileType, task)
-        duplicatesRequests.increment(task.id)
-        sendDuplicateRequest(request)
     }
 
     private fun TaskInfo.isPreparationFinished() = preparationRequests.isZero(id)
