@@ -1,6 +1,8 @@
 package com.osmp4j.agent.services
 
-import com.osmp4j.data.*
+import com.osmp4j.extensions.filterMap
+import com.osmp4j.features.WayFeatureFactory
+import com.osmp4j.features.core.featureRegistry
 import com.osmp4j.ftp.FTPService
 import com.osmp4j.messages.*
 import com.osmp4j.mq.QueueNames
@@ -17,19 +19,17 @@ class DuplicatesService @Autowired constructor(private val template: RabbitTempl
 
     @RabbitListener(queues = [QueueNames.DUPLICATES_REQUEST])
     fun onDuplicatesRequest(request: DuplicateRequest) {
-
-        // TODO delete ftp files
         val file = ftpService.downloadAndDelete(request.fileName)
 
         when(request) {
             is NodesDuplicateRequest -> {
-                val finalFile = file.filterMap("df-${file.name}", getConverter(request.nodeType)) { distinctBy { it.id } }
+                val finalFile = file.filterMap("df-${file.name}", featureRegistry(request.nodeType)) { distinctBy { it.id } }
                 ftpService.upload(finalFile.name, finalFile)
                 template.convertAndSend(QueueNames.DUPLICATES_RESPONSE, NodesDuplicateResponse(finalFile.name, request.nodeType, request.task))
                 finalFile.delete()
             }
             is WaysDuplicateRequest -> {
-                val finalFile = file.filterMap("df-${file.name}", WayConverter) { distinctBy { it.id } }
+                val finalFile = file.filterMap("df-${file.name}", WayFeatureFactory) { distinctBy { it.id } }
                 ftpService.upload(finalFile.name, finalFile)
                 template.convertAndSend(QueueNames.DUPLICATES_RESPONSE, WaysDuplicateResponse(finalFile.name, request.task))
                 finalFile.delete()
@@ -38,10 +38,7 @@ class DuplicatesService @Autowired constructor(private val template: RabbitTempl
 
 
         logger.debug("Finished remove duplicates for ${file.name}")
-
         file.delete()
-
-
     }
 
 

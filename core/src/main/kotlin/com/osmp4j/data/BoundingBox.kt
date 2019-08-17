@@ -1,4 +1,4 @@
-package com.osmp4j.models
+package com.osmp4j.data
 
 import com.osmp4j.geo.distanceTo
 import java.io.Serializable

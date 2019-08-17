@@ -1,10 +1,15 @@
 package com.osmp4j.host.services
 
-import com.osmp4j.data.*
 import com.osmp4j.extensions.add
+import com.osmp4j.extensions.groupByCSV
+import com.osmp4j.extensions.mergeCSV
 import com.osmp4j.ftp.FTPService
 import com.osmp4j.messages.*
-import com.osmp4j.models.BoundingBox
+import com.osmp4j.data.BoundingBox
+import com.osmp4j.features.WayFeatureFactory
+import com.osmp4j.features.core.FeatureFactory
+import com.osmp4j.features.core.FeatureType
+import com.osmp4j.features.core.featureRegistry
 import com.osmp4j.mq.QueueNames
 import org.slf4j.LoggerFactory
 import org.springframework.amqp.rabbit.annotation.RabbitListener
@@ -25,7 +30,7 @@ class ExportService @Autowired constructor(private val template: RabbitTemplate,
 
     private val preparationResults = mutableMapOf<UUID, List<ResultFileNameHolder>>()
 
-    private val duplicateFreeNodeFiles = mutableMapOf<UUID, List<Pair<NodeType, String>>>()
+    private val duplicateFreeNodeFiles = mutableMapOf<UUID, List<Pair<FeatureType, String>>>()
     private val duplicateFreeWayFiles = mutableMapOf<UUID, List<String>>()
 
 
@@ -102,10 +107,6 @@ class ExportService @Autowired constructor(private val template: RabbitTemplate,
     }
 
     private fun onFinishDuplicates(task: TaskInfo) {
-        //TODO work with streams
-
-        logger.debug("FINISH duplicates for ${task.types}")
-
         val (nodeFiles, wayFiles) = ftpService.execute {
             val nodeFiles = duplicateFreeNodeFiles[task.id]
                     ?.map { (type, file) -> type to downloadAndDelete(file) }
@@ -117,10 +118,10 @@ class ExportService @Autowired constructor(private val template: RabbitTemplate,
         }
 
         val mergedNodesFile = nodeFiles.map { g ->
-            val converter = getConverter(g.key)
+            val converter = featureRegistry(g.key)
             g.key to g.value.mergeCSV("${converter.typeName()}-merged-${task.id}", converter)
         }
-        val mergedWaysFile = wayFiles.mergeCSV("ways-merged-${task.id}", WayConverter)
+        val mergedWaysFile = wayFiles.mergeCSV("ways-merged-${task.id}", WayFeatureFactory)
 
         downloadService.saveForDownload(task, ResultFileHolder(mergedNodesFile, mergedWaysFile))
     }
@@ -144,22 +145,22 @@ class ExportService @Autowired constructor(private val template: RabbitTemplate,
         template.convertAndSend(QueueNames.DUPLICATES_REQUEST, request)
     }
 
-    private fun removeDuplicates(nodesFiles: List<Pair<NodeType, List<File>>>, waysFiles: List<File>, task: TaskInfo) {
+    private fun removeDuplicates(nodesFiles: List<Pair<FeatureType, List<File>>>, waysFiles: List<File>, task: TaskInfo) {
 
         fun getFileGen(prefix: String): (String) -> String = { "rmd-$prefix-$it-${UUID.randomUUID()}.csv" }
 
-        fun <T> getNodeFileGen(converter: CSVConverter<T>) = getFileGen(converter.typeName())
+        fun <T> getNodeFileGen(converter: FeatureFactory<T>) = getFileGen(converter.typeName())
         val waysFileGen = getFileGen("ways")
 
         val nodeFileMap = nodesFiles.map { (type, files) ->
-            val converter = getConverter(type)
+            val converter = featureRegistry(type)
             type to files.groupByCSV(converter, getNodeFileGen(converter)) { it.id.toString().take(2) }
         }
-        val wayFileMap = waysFiles.groupByCSV(WayConverter, waysFileGen) { it.id.take(2) }
+        val wayFileMap = waysFiles.groupByCSV(WayFeatureFactory, waysFileGen) { it.id.take(2) }
 
         ftpService.execute {
             nodeFileMap.forEach { g -> g.second.forEach { upload(it.value) } }
-            wayFileMap.values.forEach{ upload(it.name, it) }
+            wayFileMap.values.forEach { upload(it.name, it) }
         }
 
         nodeFileMap.forEach { g ->

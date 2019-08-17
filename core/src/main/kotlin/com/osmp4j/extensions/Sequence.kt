@@ -1,12 +1,10 @@
-package com.osmp4j.data.osm.extensions
+package com.osmp4j.extensions
 
 import com.osmp4j.data.osm.elements.OSMNode
 import com.osmp4j.data.osm.elements.attributes.OSMTag
 import com.osmp4j.data.osm.features.OSMAttribute
 import com.osmp4j.data.osm.features.OSMFeature
 import com.osmp4j.data.osm.features.OSMValue
-
-//TODO SEQUENCE DESERIALIZER and only operate on sequences. Remove collection methods
 
 fun <T> Sequence<OSMTag>.contains(feature: OSMFeature<T>) = any { it.k == feature.name }
 fun <T> Sequence<OSMTag>.contains(feature: OSMFeature<T>, value: OSMValue<T>) = any { it.k == feature.name && it.v == value.name }

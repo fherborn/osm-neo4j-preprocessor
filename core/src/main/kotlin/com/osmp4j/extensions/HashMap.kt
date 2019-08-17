@@ -1,6 +1,6 @@
 package com.osmp4j.extensions
 
-import com.osmp4j.models.Identifiable
+import com.osmp4j.data.Identifiable
 import java.util.*
 
 

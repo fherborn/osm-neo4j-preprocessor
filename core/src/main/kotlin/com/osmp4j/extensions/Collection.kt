@@ -1,12 +1,10 @@
-package com.osmp4j.data.osm.extensions
+package com.osmp4j.extensions
 
 import com.osmp4j.data.osm.elements.OSMNode
-import com.osmp4j.data.osm.elements.OSMWay
 import com.osmp4j.data.osm.elements.attributes.OSMTag
 import com.osmp4j.data.osm.features.OSMAttribute
 import com.osmp4j.data.osm.features.OSMFeature
 import com.osmp4j.data.osm.features.OSMValue
-import com.osmp4j.data.osm.features.OSMWaterway
 
 
 fun <T> Collection<OSMTag>.contains(feature: OSMFeature<T>) = any { it.k == feature.name }
