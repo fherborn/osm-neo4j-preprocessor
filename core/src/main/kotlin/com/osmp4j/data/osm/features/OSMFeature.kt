@@ -1,9 +1,11 @@
 package com.osmp4j.data.osm.features
 
+import java.io.Serializable
+
 class OSMValue<T>(val name: String)
 class OSMAttribute<T>(val name: String)
 
-open class OSMFeature<T>(val name: String) {
+open class OSMFeature<T>(val name: String) : Serializable {
 
     //TODO Annotation, Name, Properties, References, Restrictions
 
@@ -30,6 +32,9 @@ open class OSMFeature<T>(val name: String) {
     protected fun value(name: String) = OSMValue<T>(name)
     protected fun attr(name: String) = OSMAttribute<T>(name)
 }
+
+
+
 
 val features = listOf(
         OSMAerialWay,

@@ -1,8 +1,15 @@
 package com.osmp4j.host.services
 
+import com.osmp4j.extensions.add
+import com.osmp4j.extensions.groupByCSV
+import com.osmp4j.extensions.mergeCSV
 import com.osmp4j.ftp.FTPService
 import com.osmp4j.messages.*
-import com.osmp4j.models.BoundingBox
+import com.osmp4j.data.BoundingBox
+import com.osmp4j.features.WayFeatureFactory
+import com.osmp4j.features.core.FeatureFactory
+import com.osmp4j.features.core.FeatureType
+import com.osmp4j.features.core.featureRegistry
 import com.osmp4j.mq.QueueNames
 import org.slf4j.LoggerFactory
 import org.springframework.amqp.rabbit.annotation.RabbitListener
@@ -23,11 +30,100 @@ class ExportService @Autowired constructor(private val template: RabbitTemplate,
 
     private val preparationResults = mutableMapOf<UUID, List<ResultFileNameHolder>>()
 
+    private val duplicateFreeNodeFiles = mutableMapOf<UUID, List<Pair<FeatureType, String>>>()
+    private val duplicateFreeWayFiles = mutableMapOf<UUID, List<String>>()
+
+
+    @RabbitListener(queues = [QueueNames.DUPLICATES_RESPONSE])
+    private fun onDuplicatesResponse(response: DuplicateResponse) {
+
+        duplicatesRequests.decrement(response.task.id)
+
+        when (response) {
+            is NodesDuplicateResponse -> {
+                duplicateFreeNodeFiles.add(response.task.id, response.nodeType to response.fileName)
+            }
+            is WaysDuplicateResponse -> {
+                duplicateFreeWayFiles.add(response.task.id, response.fileName)
+            }
+        }
+
+        if (response.task.isDuplicatesFinished()) {
+            onFinishDuplicates(response.task)
+        }
+    }
+
+    @RabbitListener(queues = [QueueNames.DUPLICATES_ERROR])
+    private fun onDuplicatesResponse(response: DuplicatesError) {
+
+    }
+
+    @RabbitListener(queues = [QueueNames.PREPARATION_ERROR])
+    private fun onPreparationError(error: PreparationError) {
+        when (error) {
+            is BoundingBoxToLargeError -> retryPreparation(error.task, error.box)
+        }
+        preparationRequests.decrement(error.task.id)
+    }
+
+
+    @RabbitListener(queues = [QueueNames.PREPARATION_RESPONSE])
+    private fun onPreparationResponse(response: PreparationResponse) {
+        val (files, task) = response
+        preparationRequests.decrement(task.id)
+        preparationResults.add(task.id, files)
+        if (response.task.isPreparationFinished()) {
+            onPreparationFinished(task)
+        }
+    }
+
     fun startExport(task: TaskInfo) {
         task.exportStarted()
         task.preparationStarted()
         val boxes = task.box.split(0.25)
         sendPreparationRequests(boxes, task)
+    }
+
+    private fun onPreparationFinished(task: TaskInfo) {
+        task.preparationFinished()
+
+        val nodesFileNames = preparationResults[task.id]
+                ?.map { it.nodeFileNames }
+                ?.flatMap { map -> map.map { it.key to it.value } }
+                ?.groupBy { it.first }
+                ?.mapValues { l -> l.value.map { it.second } }
+                ?: mapOf()
+
+        val waysFileNames = preparationResults[task.id]?.map { it.waysFileName } ?: listOf()
+
+        val (nodesFiles, waysFiles) = ftpService.execute {
+            val nodesFiles = nodesFileNames.map { nf -> nf.key to nf.value.map { downloadAndDelete(it) } }
+            val waysFiles = waysFileNames.map { downloadAndDelete(it) }
+            nodesFiles to waysFiles
+        }
+
+
+        removeDuplicates(nodesFiles, waysFiles, task)
+    }
+
+    private fun onFinishDuplicates(task: TaskInfo) {
+        val (nodeFiles, wayFiles) = ftpService.execute {
+            val nodeFiles = duplicateFreeNodeFiles[task.id]
+                    ?.map { (type, file) -> type to downloadAndDelete(file) }
+                    ?.groupBy { it.first }
+                    ?.mapValues { g -> g.value.map { it.second } }
+                    ?: mapOf()
+            val wayFiles = duplicateFreeWayFiles[task.id]?.map { downloadAndDelete(it) } ?: listOf()
+            nodeFiles to wayFiles
+        }
+
+        val mergedNodesFile = nodeFiles.map { g ->
+            val converter = featureRegistry(g.key)
+            g.key to g.value.mergeCSV("${converter.typeName()}-merged-${task.id}", converter)
+        }
+        val mergedWaysFile = wayFiles.mergeCSV("ways-merged-${task.id}", WayFeatureFactory)
+
+        downloadService.saveForDownload(task, ResultFileHolder(mergedNodesFile, mergedWaysFile))
     }
 
     private fun sendPreparationRequests(boxes: List<BoundingBox>, task: TaskInfo) {
@@ -44,56 +140,52 @@ class ExportService @Autowired constructor(private val template: RabbitTemplate,
         template.convertAndSend(QueueNames.PREPARATION_REQUEST, request)
     }
 
-    @RabbitListener(queues = [QueueNames.PREPARATION_RESPONSE])
-    private fun onPreparationResponse(response: PreparationResponse) {
-        val (files, task) = response
-        preparationRequests.decrement(task.id)
-
-        preparationResults[task.id] = (preparationResults[task.id] ?: listOf()) + files
-
-        if (response.task.isPreparationFinished()) {
-            task.preparationFinished()
-            //TODO Combine result files
-            //TODO Start removeFile duplicates
-
-            val finalNodesFile = File("nodes-merged-${task.id}")
-            val finalWaysFile = File("ways-merged-${task.id}")
-
-            val nodesFileNames = preparationResults[task.id]?.map { it.nodesFileName } ?: listOf()
-            val waysFileNames = preparationResults[task.id]?.map { it.waysFileName } ?: listOf()
-
-            val nodesFiles = nodesFileNames.map { ftpService.download(it) }
-            val waysFiles = waysFileNames.map { ftpService.download(it) }
-
-            finalNodesFile.appendCSV(nodesFiles)
-            finalWaysFile.appendCSV(waysFiles)
-
-            downloadService.saveForDownload(task, ResultFileHolder(finalNodesFile, finalWaysFile))
-        }
+    private fun sendDuplicateRequest(request: DuplicateRequest, task: TaskInfo) {
+        duplicatesRequests.increment(task.id)
+        template.convertAndSend(QueueNames.DUPLICATES_REQUEST, request)
     }
 
-    fun File.appendCSV(files : List<File>) = files.forEach { file ->
-        var index = 0
-        var headerAppended : Boolean = false
-        file.forEachLine { line ->
-            if (index != 0 || !headerAppended) {
-                appendText(line)
-                headerAppended = true
-                index++
+    private fun removeDuplicates(nodesFiles: List<Pair<FeatureType, List<File>>>, waysFiles: List<File>, task: TaskInfo) {
+
+        fun getFileGen(prefix: String): (String) -> String = { "rmd-$prefix-$it-${UUID.randomUUID()}.csv" }
+
+        fun <T> getNodeFileGen(converter: FeatureFactory<T>) = getFileGen(converter.typeName())
+        val waysFileGen = getFileGen("ways")
+
+        val nodeFileMap = nodesFiles.map { (type, files) ->
+            val converter = featureRegistry(type)
+            type to files.groupByCSV(converter, getNodeFileGen(converter)) { it.id.toString().take(2) }
+        }
+        val wayFileMap = waysFiles.groupByCSV(WayFeatureFactory, waysFileGen) { it.id.take(2) }
+
+        ftpService.execute {
+            nodeFileMap.forEach { g -> g.second.forEach { upload(it.value) } }
+            wayFileMap.values.forEach { upload(it.name, it) }
+        }
+
+        nodeFileMap.forEach { g ->
+            g.second.values.forEach { file ->
+                val request = NodesDuplicateRequest(file.name, g.first, task)
+                sendDuplicateRequest(request, task)
+                file.delete()
             }
         }
+
+
+
+        wayFileMap.values.forEach { file ->
+            val request = WaysDuplicateRequest(file.name, task)
+            sendDuplicateRequest(request, task)
+            file.delete()
+        }
+
+        nodesFiles.flatMap { it.second }.forEach { it.delete() }
+        waysFiles.forEach { it.delete() }
+
     }
 
     private fun TaskInfo.isPreparationFinished() = preparationRequests.isZero(id)
-
-
-    @RabbitListener(queues = [QueueNames.PREPARATION_ERROR])
-    private fun onPreparationError(error: PreparationError) {
-        when (error) {
-            is BoundingBoxToLargeError -> retryPreparation(error.task, error.box)
-        }
-        preparationRequests.decrement(error.task.id)
-    }
+    private fun TaskInfo.isDuplicatesFinished() = duplicatesRequests.isZero(id)
 
 
     private fun retryPreparation(task: TaskInfo, box: BoundingBox) {

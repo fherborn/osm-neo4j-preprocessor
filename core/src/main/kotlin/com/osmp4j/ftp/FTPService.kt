@@ -4,21 +4,34 @@ import org.apache.commons.net.ftp.FTPClient
 import org.springframework.stereotype.Service
 import java.io.File
 
-fun FTPClient.storeFile(remote: String, file: File) = storeFile(remote, file.inputStream())
-fun FTPClient.retrieveFile(remote: String, file: File) = retrieveFile(remote, file.outputStream())
 
+class FTPClientWrapper(private val ftpClient: FTPClient) {
+    fun upload(remote: String, file: File) = ftpClient.storeFile(remote, file.inputStream())
+    fun upload(file: File) = upload(file.name, file)
+    fun download(remote: String, file: File) = file.also { ftpClient.retrieveFile(remote, it.outputStream()) }
+    fun download(remote: String, outFile: String = remote) = download(remote, File(outFile))
+    fun downloadAndDelete(remote: String, file: File) = download(remote, file).also { ftpClient.deleteFile(remote) }
+    fun downloadAndDelete(remote: String, outFile: String = remote) = downloadAndDelete(remote, File(outFile))
+    fun makeDirectory(directory: String) = ftpClient.makeDirectory(directory)
+}
 
 @Service
 class FTPService(private val ftpClientFactory: FTPClientFactory) {
 
-    fun execute(block: FTPClient.() -> Unit) {
+    fun <T> execute(block: FTPClientWrapper.() -> T): T {
         val client = ftpClientFactory.getClient()
-        client.block()
+        val result = FTPClientWrapper(client).block()
         client.disconnect()
+        return result
     }
 
-    fun upload(remote: String, file: File) = execute { storeFile(remote, file) }
-    fun download(remote: String, outFile: File) = execute { retrieveFile(remote, outFile) }
-    fun download(remote: String, outFile: String = remote) =  File(outFile).also { execute { retrieveFile(remote, it) } }
+    fun mkDir(dir: String) = execute { makeDirectory(dir) }
+    fun upload(remote: String, file: File) = execute { upload(remote, file) }
+
+    fun downloadAndDelete(remote: String, outFile: String = remote) = downloadAndDelete(remote, File(outFile))
+    fun downloadAndDelete(remote: String, outFile: File) = execute { downloadAndDelete(remote, outFile) }
+
+    fun download(remote: String, outFile: File) = execute { download(remote, outFile) }
+    fun download(remote: String, outFile: String = remote) = download(remote, File(outFile))
 
 }

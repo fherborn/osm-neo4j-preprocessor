@@ -25,17 +25,17 @@ class Queues {
 
     @Bean
     fun requestDuplicatesQueue(): Queue {
-        return Queue(QueueNames.REQUEST_DUPLICATES, false)
+        return Queue(QueueNames.DUPLICATES_REQUEST, false)
     }
 
     @Bean
     fun responseDuplicatesQueue(): Queue {
-        return Queue(QueueNames.RESPONSE_DUPLICATES, false)
+        return Queue(QueueNames.DUPLICATES_RESPONSE, false)
     }
 
     @Bean
     fun errorDuplicatesQueue(): Queue {
-        return Queue(QueueNames.ERROR_DUPLICATES, false)
+        return Queue(QueueNames.DUPLICATES_ERROR, false)
     }
 
 }

@@ -1,59 +1,56 @@
 package com.osmp4j.host.controller
 
+import com.osmp4j.host.controller.templates.InputTemplate
+import com.osmp4j.host.controller.holder.InputHolder
+import com.osmp4j.host.controller.templates.ResultTemplate
+import com.osmp4j.host.events.ResultEvent
 import com.osmp4j.host.services.ExportService
 import com.osmp4j.messages.TaskInfo
-import com.osmp4j.models.BoundingBox
+import com.osmp4j.data.BoundingBox
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.context.event.EventListener
 import org.springframework.stereotype.Controller
 import org.springframework.ui.Model
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.ModelAttribute
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.context.request.async.DeferredResult
 import java.util.*
 import javax.validation.Valid
-
-data class InputForm(
-        var taskName: String = "Export ${UUID.randomUUID()}",
-        var email: String = "",
-        var fromLat: Double = 7.0862,
-        var fromLon: Double = 51.0138,
-        var toLat: Double = 7.7344,
-        var toLon: Double = 51.3134
-)
 
 
 @Controller
 @RequestMapping
 class ExportController @Autowired constructor(private val exportService: ExportService) {
 
+    private val pendingResult = hashMapOf<UUID, Pair<DeferredResult<String>, Model>>()
+
+    @EventListener
+    fun handleContextStart(event: ResultEvent) {
+        val resultHolder = event.resultFeatureHolder
+        val (_, _, task) = resultHolder
+        val (result, model) = pendingResult[task.id] ?: return
+        val template = ResultTemplate(resultHolder).build(model)
+        result.setResult(template)
+        pendingResult.remove(task.id)
+    }
+
     @GetMapping
-    fun export(model: Model) = getInputTemplate(model)
+    fun export(model: Model): String = InputTemplate().build(model)
+
 
     @PostMapping
-    fun exportSubmit(@Valid @ModelAttribute(INPUT_ATTRIBUTE) input: InputForm, model: Model): String {
-        exportService.startExport(input.toTask())
-        return getResultTemplate(model, input)
+    fun exportSubmit(@Valid @ModelAttribute input: InputHolder, model: Model): DeferredResult<String> {
+        val task = input.toTask()
+        return DeferredResult<String>().also {
+            pendingResult[task.id] = it to model
+            exportService.startExport(task)
+        }
     }
 
-    private fun InputForm.toTask() = TaskInfo(taskName, email, BoundingBox.createFixed(fromLat, fromLon, toLat, toLon))
 
-    private fun getResultTemplate(model: Model, input: InputForm): String {
-        model.addAttribute(RESULT_ATTRIBUTE, input)
-        return RESULT_TEMPLATE
-    }
+    private fun InputHolder.toTask() = TaskInfo(taskName, BoundingBox.createFixed(fromLat, fromLon, toLat, toLon), features)
 
-    private fun getInputTemplate(model: Model): String {
-        model.addAttribute(INPUT_ATTRIBUTE, InputForm())
-        return INDEX_TEMPLATE
-    }
-
-    companion object {
-        const val INPUT_ATTRIBUTE = "input"
-        const val RESULT_ATTRIBUTE = "result"
-
-        const val INDEX_TEMPLATE = "index"
-        const val RESULT_TEMPLATE = "result"
-    }
 
 }

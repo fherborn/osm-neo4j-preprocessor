@@ -1,4 +1,4 @@
-package com.osmp4j.data.osm.extensions
+package com.osmp4j.extensions
 
 import com.osmp4j.data.osm.elements.OSMNode
 import com.osmp4j.data.osm.features.OSMAttribute
