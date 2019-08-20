@@ -56,55 +56,16 @@ services:
     image: stilliard/pure-ftpd:hardened
     container_name: osmp4j-ftpd
     ports:
-      - target: 21
-        published: 21
-        protocol: tcp
-        mode: host
-      - target: 30000
-        published: 30000
-        protocol: tcp
-        mode: host
-      - target: 30001
-        published: 30001
-        protocol: tcp
-        mode: host
-      - target: 30002
-        published: 30002
-        protocol: tcp
-        mode: host
-      - target: 30003
-        published: 30003
-        protocol: tcp
-        mode: host
-      - target: 30004
-        published: 30004
-        protocol: tcp
-        mode: host
-      - target: 30005
-        published: 30005
-        protocol: tcp
-        mode: host
-      - target: 30006
-        published: 30006
-        protocol: tcp
-        mode: host
-      - target: 30007
-        published: 30007
-        protocol: tcp
-        mode: host
-      - target: 30008
-        published: 30008
-        protocol: tcp
-        mode: host
-      - target: 30009
-        published: 30009
-        protocol: tcp
-        mode: host
+      - "21:21"
+      - "30000-30009:30000-30009"
     environment:
       PUBLICHOST: "localhost"
       FTP_USER_NAME: "osmp4jadmin"
       FTP_USER_PASS: "osmp4j"
       FTP_USER_HOME: "/home/username"
+      FTP_MAX_CLIENTS: "120"
+      FTP_MAX_CONNECTIONS: "12"
+      FTP_PASSIVE_PORTS: 30000:30239
     networks:
       - osmp4j
     restart: always
