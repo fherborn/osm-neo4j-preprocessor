@@ -1,0 +1,15 @@
+version: '3.3'
+
+services:
+  agent:
+    image: osmp4j/agent
+    restart: always
+    environment:
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_USERNAME: osmp4jadmin
+      SPRING_RABBITMQ_PASSWORD: osmp4j
+      OSMP4J_FTPD_HOST: ftpd_server
+      OSMP4J_FTPD_USER_NAME: osmp4jadmin
+      OSMP4J_FTPD_USER_PASS: osmp4j
+    ports:
+      - "8081-8181:8080"

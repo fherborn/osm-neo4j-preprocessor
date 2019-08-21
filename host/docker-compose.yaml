@@ -1,0 +1,56 @@
+version: '3.3'
+
+services:
+  rabbitmq:
+    image: rabbitmq:3.7.17-management
+    container_name: osmp4j-rabbit
+    restart: always
+    environment:
+      RABBITMQ_DEFAULT_USER: osmp4jadmin
+      RABBITMQ_DEFAULT_PASS: osmp4j
+    ports:
+      - 5672:5672
+      - 15672:15672
+    networks:
+      - osmp4j
+
+  host:
+    image: osmp4j/host
+    container_name: osmp4j-host
+    restart: always
+    environment:
+      HOST: 192.168.0.192:8080
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_USERNAME: osmp4jadmin
+      SPRING_RABBITMQ_PASSWORD: osmp4j
+      OSMP4J_FTPD_HOST: ftpd_server
+      OSMP4J_FTPD_USER_NAME: osmp4jadmin
+      OSMP4J_FTPD_USER_PASS: osmp4j
+    ports:
+      - 8080:8080
+    networks:
+      - osmp4j
+    depends_on:
+      - rabbitmq
+      - ftpd_server
+
+  ftpd_server:
+    image: stilliard/pure-ftpd:hardened
+    container_name: osmp4j-ftpd
+    ports:
+      - "21:21"
+      - "30000-30239:30000-30239"
+    environment:
+      PUBLICHOST: "localhost"
+      FTP_USER_NAME: "osmp4jadmin"
+      FTP_USER_PASS: "osmp4j"
+      FTP_USER_HOME: "/home/username"
+      FTP_MAX_CLIENTS: "120"
+      FTP_MAX_CONNECTIONS: "12"
+      FTP_PASSIVE_PORTS: "30000:30239"
+    networks:
+      - osmp4j
+    restart: always
+
+networks:
+  osmp4j:
