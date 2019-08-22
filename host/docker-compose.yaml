@@ -35,19 +35,16 @@ services:
       - ftpd_server
 
   ftpd_server:
-    image: stilliard/pure-ftpd:hardened
+    image: bogem/ftp
     container_name: osmp4j-ftpd
     ports:
+      - "20:20"
       - "21:21"
-      - "30000-30239:30000-30239"
+      - "47400-47470:47400-47470"
     environment:
-      PUBLICHOST: "localhost"
-      FTP_USER_NAME: "osmp4jadmin"
-      FTP_USER_PASS: "osmp4j"
-      FTP_USER_HOME: "/home/username"
-      FTP_MAX_CLIENTS: "120"
-      FTP_MAX_CONNECTIONS: "12"
-      FTP_PASSIVE_PORTS: "30000:30239"
+      PASV_ADDRESS: 192.168.0.192
+      FTP_USER: "osmp4jadmin"
+      FTP_PASS: "osmp4j"
     networks:
       - osmp4j
     restart: always
