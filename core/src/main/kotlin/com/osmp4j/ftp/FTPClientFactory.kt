@@ -20,6 +20,7 @@ class FTPClientFactory(private val properties: FtpProperties) {
         client.addProtocolCommandListener(PrintCommandListener(PrintWriter(System.out)))
         logger.debug("Connect FTPService Host: ${properties.host} Port: ${properties.port}")
         client.connect(properties.host, properties.port)
+        client.enterLocalPassiveMode()
 
         if (!FTPReply.isPositiveCompletion(client.replyCode)) {
             client.disconnect()
